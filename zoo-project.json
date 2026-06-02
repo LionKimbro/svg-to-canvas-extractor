@@ -1,0 +1,13 @@
+{
+  "zookeep-project-guid": "323a2ab6-7c3e-45cb-87e6-7e4def94f58b",
+  "name": "svg-to-canvas-extractor",
+  "repo-type": "python-2026-03",
+  "license": "CC0-1.0",
+  "repository": {
+    "name": "svg-to-canvas-extractor",
+    "visibility": "public"
+  },
+  "python-package": {
+    "name": "svg2canvasx"
+  }
+}
