@@ -243,7 +243,7 @@ def extract_text(node, layer_info, groups, style, world_matrix, state):
     x_value = 0.0 if x_value is None else x_value
     y_value = 0.0 if y_value is None else y_value
     anchor_point = apply_matrix(world_matrix, [x_value, y_value])
-    anchor_name = style.get("text-anchor", "start")
+    anchor_name = _effective_text_anchor(style, spans)
     obj = _base_object(node, "text", layer_info, groups, style, world_matrix, state)
     obj["text"] = text_value
     obj["spans"] = spans
@@ -404,6 +404,17 @@ def _suggest_tk_anchor(text_anchor):
     if text_anchor == "end":
         return "se"
     return "sw"
+
+
+def _effective_text_anchor(style, spans):
+    for span in spans:
+        if not str(span.get("text") or "").strip():
+            continue
+        span_style = span.get("style") or {}
+        anchor_name = span_style.get("text_anchor")
+        if anchor_name:
+            return anchor_name
+    return style.get("text-anchor", "start")
 
 
 def _copy_layer(layer_info):
