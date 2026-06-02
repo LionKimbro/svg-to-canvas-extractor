@@ -1,0 +1,166 @@
+from pathlib import Path
+import sys
+import tempfile
+import textwrap
+import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from svg2canvasx.extract import extract_svg_file
+
+
+kSVG_HEADER = """\
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="200" height="200" viewBox="0 0 200 200">
+"""
+
+
+def run_extract(svg_body, flags=None):
+    flags = flags or {}
+    text = kSVG_HEADER + svg_body + "\n</svg>\n"
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "fixture.svg"
+        path.write_text(textwrap.dedent(text), encoding="utf-8")
+        return extract_svg_file(path, **flags)
+
+
+class ExtractTests(unittest.TestCase):
+    def test_rect_without_transform(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <rect id="r1" x="10" y="20" width="30" height="40" />
+            </g>
+            """
+        )
+        obj = data["objects"][0]
+        self.assertEqual(obj["kind"], "rect")
+        self.assertEqual(obj["world"]["bbox"], [10.0, 20.0, 40.0, 60.0])
+
+    def test_rect_inside_translate_group(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <g id="grp" transform="translate(5,7)">
+                <rect id="r1" x="10" y="20" width="30" height="40" />
+              </g>
+            </g>
+            """
+        )
+        self.assertEqual(data["objects"][0]["world"]["bbox"], [15.0, 27.0, 45.0, 67.0])
+
+    def test_rect_inside_nested_translate_groups(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <g transform="translate(5,7)">
+                <g transform="translate(2,3)">
+                  <rect id="r1" x="10" y="20" width="30" height="40" />
+                </g>
+              </g>
+            </g>
+            """
+        )
+        self.assertEqual(data["objects"][0]["world"]["bbox"], [17.0, 30.0, 47.0, 70.0])
+
+    def test_rect_inside_rotate_group(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <g transform="rotate(90)">
+                <rect id="r1" x="10" y="20" width="30" height="40" />
+              </g>
+            </g>
+            """
+        )
+        self.assertEqual(data["objects"][0]["world"]["bbox"], [-60.0, 10.0, -20.0, 40.0])
+
+    def test_text_with_bold_tspan(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <text id="t1" x="10" y="20" font-family="Arial" font-size="12">
+                Base<tspan font-weight="bold">Bold</tspan>
+              </text>
+            </g>
+            """
+        )
+        obj = data["objects"][0]
+        self.assertIn("BaseBold", obj["text"].replace("\n", "").replace(" ", ""))
+        bold_spans = [span for span in obj["spans"] if span["style"].get("font_weight") == "bold"]
+        self.assertTrue(bold_spans)
+
+    def test_text_tspan_is_not_duplicated(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <text id="t1">
+                <tspan x="520" y="80" font-weight="bold">Command Interface Deck</tspan>
+              </text>
+            </g>
+            """
+        )
+        spans = [span for span in data["objects"][0]["spans"] if span["text"].strip()]
+        self.assertEqual(len(spans), 1)
+        self.assertEqual(spans[0]["text"].strip(), "Command Interface Deck")
+
+    def test_text_with_italic_tspan(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <text id="t1" x="10" y="20">
+                A<tspan font-style="italic">B</tspan>
+              </text>
+            </g>
+            """
+        )
+        italic_spans = [span for span in data["objects"][0]["spans"] if span["style"].get("font_style") == "italic"]
+        self.assertTrue(italic_spans)
+
+    def test_text_with_rotate_transform(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <text id="t1" x="10" y="20" transform="rotate(-90)">Hello</text>
+            </g>
+            """
+        )
+        obj = data["objects"][0]
+        self.assertAlmostEqual(obj["world"]["anchor_point"][0], 20.0, places=6)
+        self.assertAlmostEqual(obj["world"]["anchor_point"][1], -10.0, places=6)
+        self.assertAlmostEqual(obj["world"]["angle_degrees"], -90.0, places=6)
+
+    def test_dashed_line_and_path_preserve_dasharray(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <line id="ln1" x1="0" y1="0" x2="10" y2="10" stroke-dasharray="2, 1" />
+              <path id="p1" d="M 0 0 L 5 5 L 10 0" stroke-dasharray="1 1" />
+            </g>
+            """
+        )
+        self.assertEqual(data["objects"][0]["style"]["stroke_dasharray_values"], [2.0, 1.0])
+        self.assertEqual(data["objects"][1]["style"]["stroke_dasharray_values"], [1.0, 1.0])
+        self.assertEqual(data["objects"][1]["local"]["points"], [[0.0, 0.0], [5.0, 5.0], [10.0, 0.0]])
+
+    def test_hidden_object_skipped_by_default(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <rect id="hidden" x="1" y="1" width="2" height="3" style="display:none" />
+            </g>
+            """
+        )
+        self.assertEqual(data["objects"], [])
+
+    def test_hidden_object_included_with_flag(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <rect id="hidden" x="1" y="1" width="2" height="3" style="display:none" />
+            </g>
+            """,
+            flags={"include_hidden": True},
+        )
+        self.assertEqual(len(data["objects"]), 1)
