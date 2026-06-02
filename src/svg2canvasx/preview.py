@@ -207,14 +207,23 @@ def render_text(canvas, obj, scale, options):
     world = obj.get("world", {})
     style = obj.get("style", {})
     anchor_point = world.get("anchor_point") or [0.0, 0.0]
+    anchor_name = obj.get("text_layout", {}).get("suggested_tk_anchor", "sw")
+    font_spec = make_tk_font(style, scale, options.get("font_scale", 0.75))
+    font_metrics = get_tk_font_metrics(canvas, font_spec)
+    x_value, y_value = adjusted_text_position(
+        anchor_point,
+        scale,
+        anchor_name,
+        font_metrics,
+    )
     fill = style_fill(style) or style_stroke(style) or "black"
     canvas.create_text(
-        sx(anchor_point[0], scale),
-        sx(anchor_point[1], scale),
+        x_value,
+        y_value,
         text=obj.get("text", ""),
-        anchor=obj.get("text_layout", {}).get("suggested_tk_anchor", "sw"),
+        anchor=anchor_name,
         angle=tk_text_angle(world.get("angle_degrees", 0.0)),
-        font=make_tk_font(style, scale, options.get("font_scale", 0.75)),
+        font=font_spec,
         fill=fill,
     )
 
@@ -310,6 +319,27 @@ def tk_text_angle(angle):
     if angle is None:
         return 0.0
     return -float(angle)
+
+
+def adjusted_text_position(anchor_point, scale, anchor_name, font_metrics):
+    x_value = sx(anchor_point[0], scale)
+    y_value = sx(anchor_point[1], scale)
+    return [x_value, y_value + baseline_offset(anchor_name, font_metrics)]
+
+
+def baseline_offset(anchor_name, font_metrics):
+    if anchor_name not in ("sw", "s", "se"):
+        return 0.0
+    return float((font_metrics or {}).get("descent") or 0.0)
+
+
+def get_tk_font_metrics(widget, font_spec):
+    font_obj = tkinter.font.Font(root=widget, font=font_spec)
+    return {
+        "ascent": int(font_obj.metrics("ascent")),
+        "descent": int(font_obj.metrics("descent")),
+        "linespace": int(font_obj.metrics("linespace")),
+    }
 
 
 def is_previewable_path(obj):

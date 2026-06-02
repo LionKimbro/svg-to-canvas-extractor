@@ -4,6 +4,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from svg2canvasx.preview import adjusted_text_position
+from svg2canvasx.preview import baseline_offset
 from svg2canvasx.preview import make_tk_font
 from svg2canvasx.preview import scale_points
 from svg2canvasx.preview import style_dash
@@ -59,3 +61,12 @@ class PreviewTests(unittest.TestCase):
     def test_tk_text_angle_reverses_sign(self):
         self.assertEqual(tk_text_angle(90.0), -90.0)
         self.assertEqual(tk_text_angle(-45.0), 45.0)
+
+    def test_baseline_offset_moves_south_anchors_down(self):
+        offset = baseline_offset("sw", {"descent": 4})
+        self.assertEqual(offset, 4.0)
+        self.assertEqual(baseline_offset("center", {"descent": 4}), 0.0)
+
+    def test_adjusted_text_position_applies_baseline_offset(self):
+        point = adjusted_text_position([100.0, 50.0], 1.0, "s", {"descent": 4})
+        self.assertEqual(point, [100.0, 54.0])
