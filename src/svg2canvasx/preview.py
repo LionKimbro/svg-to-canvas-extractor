@@ -184,8 +184,8 @@ def render_rect(canvas, obj, scale, options):
 def render_pathlike(canvas, obj, scale, options):
     world = obj.get("world", {})
     style = obj.get("style", {})
-    if obj.get("kind") == "path" and not is_previewable_path(obj):
-        print("Preview warning: skipping unsupported path: " + str(obj.get("svg_id") or obj.get("uid")))
+    if obj.get("kind") == "path" and style_fill(style) and not style_stroke(style):
+        print("Preview warning: skipping fill-only path: " + str(obj.get("svg_id") or obj.get("uid")))
         return
     points = world.get("points")
     if not points:
@@ -340,23 +340,6 @@ def get_tk_font_metrics(widget, font_spec):
         "descent": int(font_obj.metrics("descent")),
         "linespace": int(font_obj.metrics("linespace")),
     }
-
-
-def is_previewable_path(obj):
-    if obj.get("kind") != "path":
-        return True
-    local = obj.get("local") or {}
-    d_value = local.get("d") or ""
-    if has_curved_path_commands(d_value):
-        return False
-    return bool((obj.get("world") or {}).get("points"))
-
-
-def has_curved_path_commands(d_value):
-    for char in str(d_value or ""):
-        if char in "CcSsQqTtAa":
-            return True
-    return False
 
 
 def _is_axis_aligned_rect(obj):

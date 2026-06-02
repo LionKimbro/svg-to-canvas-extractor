@@ -5,7 +5,7 @@
    viewBox="0 0 1000 800"
    version="1.1"
    id="svg429"
-   sodipodi:docname="eraseme-grid.svg"
+   sodipodi:docname="command-interface-deck.svg"
    inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -22,13 +22,13 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="true"
      inkscape:zoom="1"
-     inkscape:cx="252"
-     inkscape:cy="429"
-     inkscape:window-width="2560"
-     inkscape:window-height="1369"
-     inkscape:window-x="4472"
-     inkscape:window-y="-7"
-     inkscape:window-maximized="1"
+     inkscape:cx="452.5"
+     inkscape:cy="361.5"
+     inkscape:window-width="1669"
+     inkscape:window-height="1360"
+     inkscape:window-x="5362"
+     inkscape:window-y="1"
+     inkscape:window-maximized="0"
      inkscape:current-layer="layer3">
     <inkscape:grid
        type="xygrid"
@@ -206,7 +206,7 @@
          style="font-weight:bold;font-size:32px;text-align:center;text-anchor:middle"
          id="tspan3099">Command Interface Deck</tspan></text>
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3101-9-1"
        width="240"
        height="40"
@@ -214,7 +214,7 @@
        y="460"
        inkscape:label="cmd6" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3101-9"
        width="240"
        height="40"
@@ -222,7 +222,7 @@
        y="400"
        inkscape:label="cmd5" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3101-7-8"
        width="240"
        height="40"
@@ -230,7 +230,7 @@
        y="340"
        inkscape:label="cmd4" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3101-7-9"
        width="240"
        height="40"
@@ -238,7 +238,7 @@
        y="280"
        inkscape:label="cmd3" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3101-7"
        width="240"
        height="40"
@@ -246,7 +246,7 @@
        y="220"
        inkscape:label="cmd2" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3101"
        width="240"
        height="40"
@@ -254,7 +254,7 @@
        y="160"
        inkscape:label="cmd1" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363-58"
        width="160"
        height="20"
@@ -262,7 +262,7 @@
        y="680"
        inkscape:label="arg8" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363-2-8"
        width="160"
        height="20"
@@ -270,7 +270,7 @@
        y="660"
        inkscape:label="arg7" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363-2-7"
        width="160"
        height="20"
@@ -278,7 +278,7 @@
        y="640"
        inkscape:label="arg6" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363-2"
        width="160"
        height="20"
@@ -286,7 +286,7 @@
        y="620"
        inkscape:label="arg5" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363-5"
        width="160"
        height="20"
@@ -294,7 +294,7 @@
        y="600"
        inkscape:label="arg4" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363-1"
        width="160"
        height="20"
@@ -302,7 +302,7 @@
        y="580"
        inkscape:label="arg3" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363-8"
        width="160"
        height="20"
@@ -310,7 +310,7 @@
        y="560"
        inkscape:label="arg2" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect3363"
        width="160"
        height="20"
@@ -318,7 +318,7 @@
        y="540"
        inkscape:label="arg1" />
     <rect
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
        id="rect4950"
        width="120"
        height="160"

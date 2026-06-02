@@ -18,6 +18,7 @@ def build_parser():
     extract_parser.add_argument("--debug", action="store_true")
     extract_parser.add_argument("--include-hidden", action="store_true")
     extract_parser.add_argument("--no-world-geometry", action="store_true")
+    extract_parser.add_argument("--curve-segments", type=int, default=16)
 
     preview_parser = subparsers.add_parser("preview")
     preview_parser.add_argument("input_json")
@@ -41,6 +42,7 @@ def main(argv=None):
             include_hidden=args.include_hidden,
             include_world_geometry=not args.no_world_geometry,
             debug=args.debug,
+            curve_segments=args.curve_segments,
         )
         write_json_file(args.output, data, pretty=args.pretty)
         return 0

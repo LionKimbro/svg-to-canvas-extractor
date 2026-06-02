@@ -143,6 +143,59 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(data["objects"][0]["style"]["stroke_dasharray_values"], [2.0, 1.0])
         self.assertEqual(data["objects"][1]["style"]["stroke_dasharray_values"], [1.0, 1.0])
         self.assertEqual(data["objects"][1]["local"]["points"], [[0.0, 0.0], [5.0, 5.0], [10.0, 0.0]])
+        self.assertFalse(data["objects"][1]["local"]["path_was_flattened"])
+
+    def test_cubic_path_produces_sampled_points(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <path id="p1" d="M 0,0 C 10,0 10,10 20,10" />
+            </g>
+            """
+        )
+        obj = data["objects"][0]
+        self.assertGreater(len(obj["local"]["points"]), 2)
+        self.assertEqual(obj["local"]["points"][0], [0.0, 0.0])
+        self.assertEqual(obj["local"]["points"][-1], [20.0, 10.0])
+        self.assertTrue(obj["local"]["path_was_flattened"])
+        self.assertEqual(obj["local"]["curve_segments"], 16)
+
+    def test_quadratic_path_produces_sampled_points(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <path id="p1" d="M 0,0 Q 10,20 20,0" />
+            </g>
+            """
+        )
+        obj = data["objects"][0]
+        self.assertGreater(len(obj["local"]["points"]), 2)
+        self.assertEqual(obj["local"]["points"][0], [0.0, 0.0])
+        self.assertEqual(obj["local"]["points"][-1], [20.0, 0.0])
+
+    def test_curve_segments_option_changes_sampling_density(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <path id="p1" d="M 0,0 C 10,0 10,10 20,10" />
+            </g>
+            """,
+            flags={"curve_segments": 4},
+        )
+        obj = data["objects"][0]
+        self.assertEqual(len(obj["local"]["points"]), 5)
+        self.assertEqual(obj["local"]["curve_segments"], 4)
+
+    def test_arc_path_reports_warning(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+              <path id="p1" d="M 0,0 A 10,10 0 0 1 20,0" />
+            </g>
+            """
+        )
+        self.assertIn("unsupported path arc command", data["warnings"])
+        self.assertNotIn("points", data["objects"][0]["local"])
 
     def test_hidden_object_skipped_by_default(self):
         data = run_extract(

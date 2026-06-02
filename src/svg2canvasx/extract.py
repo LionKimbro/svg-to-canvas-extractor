@@ -3,9 +3,9 @@ from pathlib import Path
 from .geometry import bbox_from_points
 from .geometry import clean_number
 from .geometry import clean_point
+from .geometry import flatten_path
 from .geometry import parse_points
 from .geometry import rect_points
-from .geometry import simplify_path
 from .geometry import transform_points
 from .styles import build_style
 from .styles import empty_style
@@ -35,6 +35,7 @@ def extract_svg_file(
     include_hidden=False,
     include_world_geometry=True,
     debug=False,
+    curve_segments=16,
 ):
     warnings = []
     root = load_svg(path)
@@ -48,6 +49,7 @@ def extract_svg_file(
         "include_hidden": include_hidden,
         "include_world_geometry": include_world_geometry,
         "debug": debug,
+        "curve_segments": curve_segments,
     }
 
     selected = _choose_layers(root, layer_names, extract_all_layers)
@@ -208,10 +210,13 @@ def extract_poly(node, layer_info, groups, style, world_matrix, state, name):
 
 def extract_path(node, layer_info, groups, style, world_matrix, state):
     d_value = node.get("d", "")
-    local_points = simplify_path(d_value, state["warnings"])
+    flat = flatten_path(d_value, state["warnings"], state["curve_segments"])
+    local_points = flat.get("points")
     obj = _base_object(node, "path", layer_info, groups, style, world_matrix, state)
     obj["local"] = {
         "d": d_value,
+        "path_was_flattened": flat.get("path_was_flattened", False),
+        "curve_segments": state["curve_segments"],
     }
     if local_points:
         obj["local"]["points"] = local_points
