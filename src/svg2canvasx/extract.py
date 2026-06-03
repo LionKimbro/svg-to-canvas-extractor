@@ -32,6 +32,9 @@ def extract_svg_file(
     path,
     layer_names=None,
     extract_all_layers=False,
+    include_reference_layers=False,
+    annotations_as_objects=False,
+    no_annotations=False,
     include_hidden=False,
     include_world_geometry=True,
     debug=False,
@@ -43,6 +46,7 @@ def extract_svg_file(
     state = {
         "warnings": warnings,
         "objects": [],
+        "annotations": [],
         "layers": [],
         "uid_counter": 0,
         "selected_layers": [],
@@ -50,11 +54,19 @@ def extract_svg_file(
         "include_world_geometry": include_world_geometry,
         "debug": debug,
         "curve_segments": curve_segments,
+        "annotations_as_objects": annotations_as_objects,
+        "no_annotations": no_annotations,
     }
 
-    selected = _choose_layers(root, layer_names, extract_all_layers)
+    layers = _discover_layers(root)
+    selected = _choose_layers(
+        layers,
+        layer_names,
+        extract_all_layers,
+        include_reference_layers,
+    )
     state["selected_layers"] = selected
-    state["layers"] = [_copy_layer(layer) for layer in selected]
+    state["layers"] = [_copy_layer(layer) for layer in layers]
 
     walk_node(
         root,
@@ -74,6 +86,7 @@ def extract_svg_file(
         "svg": svg_meta,
         "layers": state["layers"],
         "objects": state["objects"],
+        "annotations": state["annotations"],
         "warnings": warnings,
     }
 
@@ -307,11 +320,15 @@ def extract_ellipse_like(node, layer_info, groups, style, world_matrix, state, n
     return obj
 
 
-def _choose_layers(root, layer_names, extract_all_layers):
+def _discover_layers(root):
     layers = []
     for child in list(root):
         if local_name(child.tag) == "g" and is_layer(child):
             layers.append(get_layer_info(child))
+    return layers
+
+
+def _choose_layers(layers, layer_names, extract_all_layers, include_reference_layers):
     if extract_all_layers:
         return layers
     if layer_names:
@@ -321,19 +338,18 @@ def _choose_layers(root, layer_names, extract_all_layers):
             for layer in layers
             if layer.get("id") in wanted or layer.get("label") in wanted
         ]
-    for layer in layers:
-        if layer.get("label") == "Layer 2" or layer.get("id") == "Layer 2":
-            return [layer]
     return [
         layer
         for layer in layers
-        if not _looks_like_grid_layer(layer)
+        if _should_include_layer_by_default(layer, include_reference_layers)
     ]
 
 
-def _looks_like_grid_layer(layer_info):
-    text = " ".join(filter(None, [layer_info.get("id"), layer_info.get("label")])).lower()
-    return "grid" in text or "reference" in text
+def _should_include_layer_by_default(layer_info, include_reference_layers):
+    role = layer_info.get("role")
+    if role == "reference":
+        return include_reference_layers
+    return True
 
 
 def _should_skip_layer(layer_info, selected_layers):
@@ -355,7 +371,8 @@ def _group_info(node):
 
 def _base_object(node, kind, layer_info, groups, style, world_matrix, state):
     state["uid_counter"] += 1
-    return {
+    label = get_inkscape_label(node)
+    output = {
         "uid": get_node_id(node) or "auto_{:05d}".format(state["uid_counter"]),
         "svg_id": get_node_id(node),
         "kind": kind,
@@ -364,6 +381,10 @@ def _base_object(node, kind, layer_info, groups, style, world_matrix, state):
         "style": style_to_output(style),
         "raw_style": node.get("style"),
     }
+    if label is not None:
+        output["label"] = label
+        output["inkscape_label"] = label
+    return output
 
 
 def _collect_text_spans(node, base_style, spans, warnings):
@@ -428,6 +449,7 @@ def _copy_layer(layer_info):
     return {
         "id": layer_info.get("id"),
         "label": layer_info.get("label"),
+        "role": layer_info.get("role"),
     }
 
 
@@ -441,7 +463,32 @@ def _copy_group(group_info):
 
 def _push_object(state, obj):
     if obj is not None:
+        role = ((obj.get("layer") or {}).get("role")) or "drawable"
+        if role == "annotation":
+            if state.get("no_annotations"):
+                return
+            obj["annotation"] = _build_annotation_info(obj)
+            if state.get("annotations_as_objects"):
+                state["objects"].append(obj)
+            else:
+                state["annotations"].append(obj)
+            return
         state["objects"].append(obj)
+
+
+def _build_annotation_info(obj):
+    raw_label = obj.get("inkscape_label") or obj.get("label")
+    if raw_label and raw_label.startswith("region."):
+        return {
+            "kind": "region",
+            "name": raw_label.split(".", 1)[1] or None,
+            "raw_label": raw_label,
+        }
+    return {
+        "kind": "unknown",
+        "name": None,
+        "raw_label": raw_label,
+    }
 
 
 def _clean_matrix(matrix):

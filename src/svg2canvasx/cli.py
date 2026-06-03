@@ -14,6 +14,9 @@ def build_parser():
     extract_parser.add_argument("-o", "--output", required=True)
     extract_parser.add_argument("--layer", action="append", dest="layers")
     extract_parser.add_argument("--all-layers", action="store_true")
+    extract_parser.add_argument("--include-reference-layers", action="store_true")
+    extract_parser.add_argument("--annotations-as-objects", action="store_true")
+    extract_parser.add_argument("--no-annotations", action="store_true")
     extract_parser.add_argument("--pretty", action="store_true")
     extract_parser.add_argument("--debug", action="store_true")
     extract_parser.add_argument("--include-hidden", action="store_true")
@@ -28,6 +31,7 @@ def build_parser():
     preview_parser.add_argument("--font-scale", type=float, default=0.75)
     preview_parser.add_argument("--show-bboxes", action="store_true")
     preview_parser.add_argument("--show-ids", action="store_true")
+    preview_parser.add_argument("--show-annotations", action="store_true")
     return parser
 
 
@@ -39,6 +43,9 @@ def main(argv=None):
             args.input_svg,
             layer_names=args.layers,
             extract_all_layers=args.all_layers,
+            include_reference_layers=args.include_reference_layers,
+            annotations_as_objects=args.annotations_as_objects,
+            no_annotations=args.no_annotations,
             include_hidden=args.include_hidden,
             include_world_geometry=not args.no_world_geometry,
             debug=args.debug,
@@ -56,6 +63,7 @@ def main(argv=None):
             font_scale=args.font_scale,
             show_bboxes=args.show_bboxes,
             show_ids=args.show_ids,
+            show_annotations=args.show_annotations,
         )
         return 0
 

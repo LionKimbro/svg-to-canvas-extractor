@@ -8,9 +8,11 @@ kDEFAULT_WIDTH = 1100
 kDEFAULT_HEIGHT = 900
 kBBOX_OUTLINE = "#66a3ff"
 kID_FILL = "#444444"
+kANNOTATION_OUTLINE = "#1a8f8f"
+kANNOTATION_FILL = ""
 
 
-def preview_json_file(path, width=None, height=None, scale=1.0, font_scale=0.75, show_bboxes=False, show_ids=False):
+def preview_json_file(path, width=None, height=None, scale=1.0, font_scale=0.75, show_bboxes=False, show_ids=False, show_annotations=False):
     input_path = Path(path)
     data = json.loads(input_path.read_text(encoding="utf-8"))
     preview_data(
@@ -22,10 +24,11 @@ def preview_json_file(path, width=None, height=None, scale=1.0, font_scale=0.75,
         font_scale=font_scale,
         show_bboxes=show_bboxes,
         show_ids=show_ids,
+        show_annotations=show_annotations,
     )
 
 
-def preview_data(data, title, width=None, height=None, scale=1.0, font_scale=0.75, show_bboxes=False, show_ids=False):
+def preview_data(data, title, width=None, height=None, scale=1.0, font_scale=0.75, show_bboxes=False, show_ids=False, show_annotations=False):
     svg_info = data.get("svg", {})
     canvas_width = width or _safe_int(svg_info.get("width")) or kDEFAULT_WIDTH
     canvas_height = height or _safe_int(svg_info.get("height")) or kDEFAULT_HEIGHT
@@ -59,36 +62,51 @@ def preview_data(data, title, width=None, height=None, scale=1.0, font_scale=0.7
         "show_ids": show_ids,
     }
     render_objects(canvas, data.get("objects", []), scale, options)
+    if show_annotations:
+        render_annotations(canvas, data.get("annotations", []), scale, options)
 
     root.mainloop()
 
 
 def render_objects(canvas, objects, scale, options):
     for obj in objects:
-        kind = obj.get("kind")
-        try:
-            if kind == "rect":
-                render_rect(canvas, obj, scale, options)
-            elif kind in ("line", "polyline", "polygon", "path"):
-                render_pathlike(canvas, obj, scale, options)
-            elif kind in ("circle", "ellipse"):
-                render_ellipse(canvas, obj, scale, options)
-            elif kind == "text":
-                render_text(canvas, obj, scale, options)
-            else:
-                print("Skipping unsupported object kind: " + str(kind))
-                continue
+        render_single_object(canvas, obj, scale, options, annotation_mode=False)
 
-            if options.get("show_bboxes"):
-                render_bbox(canvas, obj, scale)
-            if options.get("show_ids"):
+
+def render_annotations(canvas, annotations, scale, options):
+    for obj in annotations:
+        render_single_object(canvas, obj, scale, options, annotation_mode=True)
+
+
+def render_single_object(canvas, obj, scale, options, annotation_mode=False):
+    kind = obj.get("kind")
+    try:
+        render_target = annotation_style_object(obj) if annotation_mode else obj
+        if kind == "rect":
+            render_rect(canvas, render_target, scale, options)
+        elif kind in ("line", "polyline", "polygon", "path"):
+            render_pathlike(canvas, render_target, scale, options)
+        elif kind in ("circle", "ellipse"):
+            render_ellipse(canvas, render_target, scale, options)
+        elif kind == "text":
+            render_text(canvas, render_target, scale, options)
+        else:
+            print("Skipping unsupported object kind: " + str(kind))
+            return
+
+        if options.get("show_bboxes"):
+            render_bbox(canvas, render_target, scale)
+        if options.get("show_ids"):
+            if annotation_mode:
+                render_annotation_id(canvas, obj, scale)
+            else:
                 render_id(canvas, obj, scale)
-        except Exception as exc:
-            print("Preview warning for {kind} {name}: {exc}".format(
-                kind=kind,
-                name=obj.get("svg_id") or obj.get("uid"),
-                exc=exc,
-            ))
+    except Exception as exc:
+        print("Preview warning for {kind} {name}: {exc}".format(
+            kind=kind,
+            name=obj.get("svg_id") or obj.get("uid"),
+            exc=exc,
+        ))
 
 
 def sx(value, scale):
@@ -289,6 +307,36 @@ def render_id(canvas, obj, scale):
     )
 
 
+def render_annotation_id(canvas, obj, scale):
+    label = annotation_display_label(obj)
+    if not label:
+        return
+    world = obj.get("world") or {}
+    bbox = world.get("bbox")
+    anchor_point = world.get("anchor_point")
+    if anchor_point:
+        x_value = sx(anchor_point[0], scale)
+        y_value = sx(anchor_point[1], scale)
+    elif bbox:
+        x_value = sx(bbox[0], scale)
+        y_value = sx(bbox[1], scale) - 10
+    else:
+        return
+    canvas.create_text(
+        x_value,
+        y_value,
+        text=label,
+        anchor="sw",
+        fill=kANNOTATION_OUTLINE,
+        font=("Arial", max(8, int(round(10 * scale)))),
+    )
+
+
+def annotation_display_label(obj):
+    annotation = obj.get("annotation") or {}
+    return annotation.get("name") or annotation.get("raw_label") or obj.get("svg_id") or obj.get("uid")
+
+
 def flatten_points(points):
     output = []
     for point in points:
@@ -365,3 +413,15 @@ def _safe_int(value):
         return int(round(float(value)))
     except Exception:
         return None
+
+
+def annotation_style_object(obj):
+    clone = dict(obj)
+    style = dict(obj.get("style") or {})
+    style["fill"] = kANNOTATION_FILL
+    style["stroke"] = kANNOTATION_OUTLINE
+    style["stroke_width"] = style.get("stroke_width") or 1.0
+    if not style.get("stroke_dasharray_values"):
+        style["stroke_dasharray_values"] = [4.0, 2.0]
+    clone["style"] = style
+    return clone

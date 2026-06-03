@@ -217,3 +217,88 @@ class ExtractTests(unittest.TestCase):
             flags={"include_hidden": True},
         )
         self.assertEqual(len(data["objects"]), 1)
+
+    def test_annotation_layers_go_to_annotations_by_default(self):
+        data = run_extract(
+            """
+            <g id="layer_grid" inkscape:groupmode="layer" inkscape:label="Layer 1: grid/reference">
+              <rect id="grid1" x="0" y="0" width="20" height="20" />
+            </g>
+            <g id="layer_draw" inkscape:groupmode="layer" inkscape:label="Layer 2: schematic objects">
+              <rect id="draw1" x="10" y="20" width="30" height="40" inkscape:label="button.main" />
+            </g>
+            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="Layer 3: annotations">
+              <rect id="anno1" x="50" y="60" width="70" height="80" inkscape:label="region.command_entries" />
+            </g>
+            """
+        )
+        self.assertEqual([item["svg_id"] for item in data["objects"]], ["draw1"])
+        self.assertEqual([item["svg_id"] for item in data["annotations"]], ["anno1"])
+        self.assertEqual(data["annotations"][0]["annotation"]["kind"], "region")
+        self.assertEqual(data["annotations"][0]["annotation"]["name"], "command_entries")
+        self.assertEqual(data["annotations"][0]["annotation"]["raw_label"], "region.command_entries")
+        self.assertEqual(data["annotations"][0]["inkscape_label"], "region.command_entries")
+        self.assertEqual([layer["role"] for layer in data["layers"]], ["reference", "drawable", "annotation"])
+
+    def test_annotation_without_region_label_is_unknown(self):
+        data = run_extract(
+            """
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="annotations">
+              <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="helper.box" />
+            </g>
+            """
+        )
+        self.assertEqual(data["objects"], [])
+        self.assertEqual(data["annotations"][0]["annotation"]["kind"], "unknown")
+        self.assertIsNone(data["annotations"][0]["annotation"]["name"])
+        self.assertEqual(data["annotations"][0]["annotation"]["raw_label"], "helper.box")
+
+    def test_reference_layers_are_skipped_by_default(self):
+        data = run_extract(
+            """
+            <g id="layer_ref" inkscape:groupmode="layer" inkscape:label="grid/reference">
+              <rect id="grid1" x="0" y="0" width="20" height="20" />
+            </g>
+            <g id="layer_draw" inkscape:groupmode="layer" inkscape:label="schematic">
+              <rect id="draw1" x="10" y="20" width="30" height="40" />
+            </g>
+            """
+        )
+        self.assertEqual([item["svg_id"] for item in data["objects"]], ["draw1"])
+        self.assertEqual(data["annotations"], [])
+
+    def test_include_reference_layers_puts_reference_objects_in_objects(self):
+        data = run_extract(
+            """
+            <g id="layer_ref" inkscape:groupmode="layer" inkscape:label="grid/reference">
+              <rect id="grid1" x="0" y="0" width="20" height="20" />
+            </g>
+            """,
+            flags={"include_reference_layers": True},
+        )
+        self.assertEqual([item["svg_id"] for item in data["objects"]], ["grid1"])
+
+    def test_annotations_as_objects_routes_annotation_layer_into_objects(self):
+        data = run_extract(
+            """
+            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="annotations">
+              <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="region.demo" />
+            </g>
+            """,
+            flags={"annotations_as_objects": True},
+        )
+        self.assertEqual([item["svg_id"] for item in data["objects"]], ["anno1"])
+        self.assertEqual(data["annotations"], [])
+        self.assertEqual(data["objects"][0]["annotation"]["name"], "demo")
+
+    def test_no_annotations_skips_annotation_layer_objects(self):
+        data = run_extract(
+            """
+            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="annotations">
+              <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="region.demo" />
+            </g>
+            """,
+            flags={"no_annotations": True},
+        )
+        self.assertEqual(data["objects"], [])
+        self.assertEqual(data["annotations"], [])

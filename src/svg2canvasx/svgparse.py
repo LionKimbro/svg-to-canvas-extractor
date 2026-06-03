@@ -60,11 +60,21 @@ def get_layer_info(node):
     return {
         "id": get_node_id(node),
         "label": get_inkscape_label(node),
+        "role": classify_layer_role(get_node_id(node), get_inkscape_label(node)),
     }
 
 
 def normalize_source_path(path):
     return str(Path(path))
+
+
+def classify_layer_role(layer_id, layer_label):
+    text = " ".join(filter(None, [layer_id, layer_label])).lower()
+    if "annotation" in text:
+        return "annotation"
+    if "grid" in text or "reference" in text:
+        return "reference"
+    return "drawable"
 
 
 def _parse_length(text, warnings):
@@ -75,4 +85,3 @@ def _parse_length(text, warnings):
         warnings.append("percentage or unit not yet supported: " + str(text))
         return None
     return value
-

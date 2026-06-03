@@ -5,6 +5,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from svg2canvasx.preview import adjusted_text_position
+from svg2canvasx.preview import annotation_display_label
+from svg2canvasx.preview import annotation_style_object
 from svg2canvasx.preview import baseline_offset
 from svg2canvasx.preview import make_tk_font
 from svg2canvasx.preview import scale_points
@@ -70,3 +72,25 @@ class PreviewTests(unittest.TestCase):
     def test_adjusted_text_position_applies_baseline_offset(self):
         point = adjusted_text_position([100.0, 50.0], 1.0, "s", {"descent": 4})
         self.assertEqual(point, [100.0, 54.0])
+
+    def test_annotation_display_label_prefers_annotation_name(self):
+        obj = {
+            "uid": "u1",
+            "svg_id": "r1",
+            "annotation": {"kind": "region", "name": "command_entries", "raw_label": "region.command_entries"},
+        }
+        self.assertEqual(annotation_display_label(obj), "command_entries")
+
+    def test_annotation_display_label_falls_back_to_raw_label_then_ids(self):
+        self.assertEqual(
+            annotation_display_label({"uid": "u1", "svg_id": "r1", "annotation": {"kind": "unknown", "name": None, "raw_label": "helper.box"}}),
+            "helper.box",
+        )
+        self.assertEqual(annotation_display_label({"uid": "u1", "svg_id": "r1"}), "r1")
+        self.assertEqual(annotation_display_label({"uid": "u1"}), "u1")
+
+    def test_annotation_style_object_uses_overlay_styling(self):
+        styled = annotation_style_object({"style": {"fill": "#ffffff", "stroke": "#000000"}})
+        self.assertEqual(styled["style"]["fill"], "")
+        self.assertEqual(styled["style"]["stroke"], "#1a8f8f")
+        self.assertEqual(styled["style"]["stroke_dasharray_values"], [4.0, 2.0])
