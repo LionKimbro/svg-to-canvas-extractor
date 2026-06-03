@@ -2,6 +2,8 @@ import argparse
 
 from .extract import extract_svg_file
 from .flow import convert_extracted_file_to_flow
+from .flow import generate_rawtkinter_source
+from .flow import load_flow_file
 from .output import write_json_file
 from .preview import preview_json_file
 
@@ -76,6 +78,10 @@ def build_parser():
     flow_parser.add_argument("-o", "--output", required=True)
     flow_parser.add_argument("--pretty", action="store_true")
 
+    rawtkinter_parser = subparsers.add_parser("rawtkinter")
+    rawtkinter_parser.add_argument("input_json")
+    rawtkinter_parser.add_argument("-o", "--output", required=True)
+
     subparsers.add_parser(
         "help-layout",
         help="show Inkscape layout and annotation conventions",
@@ -119,6 +125,13 @@ def main(argv=None):
     if args.command == "flow":
         data = convert_extracted_file_to_flow(args.input_json)
         write_json_file(args.output, data, pretty=args.pretty)
+        return 0
+
+    if args.command == "rawtkinter":
+        data = load_flow_file(args.input_json)
+        source = generate_rawtkinter_source(data)
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(source)
         return 0
 
     if args.command == "help-layout":

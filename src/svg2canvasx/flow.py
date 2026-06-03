@@ -1,11 +1,17 @@
 import json
 from pathlib import Path
+import tkinter
 
 
 def convert_extracted_file_to_flow(path):
     input_path = Path(path)
     data = json.loads(input_path.read_text(encoding="utf-8"))
     return convert_extracted_data_to_flow(data)
+
+
+def load_flow_file(path):
+    input_path = Path(path)
+    return json.loads(input_path.read_text(encoding="utf-8"))
 
 
 def convert_extracted_data_to_flow(data):
@@ -88,6 +94,56 @@ def flow_to_preview_data(data):
         "objects": objects,
         "annotations": annotations,
     }
+
+
+def draw_flow_on_canvas(canvas, flow_data):
+    for layer in flow_data.get("layers", []):
+        if layer.get("role") != "presentation":
+            continue
+        for item in layer.get("items", []):
+            _draw_flow_item_on_canvas(canvas, item)
+    return canvas
+
+
+def create_canvas_for_flow(parent, flow_data):
+    canvas_info = flow_data.get("canvas") or {}
+    width = _safe_int(canvas_info.get("width")) or 1100
+    height = _safe_int(canvas_info.get("height")) or 900
+    canvas = tkinter.Canvas(parent, width=width, height=height, background="white")
+    canvas.pack(fill="both", expand=True)
+    draw_flow_on_canvas(canvas, flow_data)
+    return canvas
+
+
+def create_toplevel_for_flow(root, flow_data):
+    window = tkinter.Toplevel(root)
+    canvas = create_canvas_for_flow(window, flow_data)
+    return {
+        "toplevel": window,
+        "canvas": canvas,
+    }
+
+
+def generate_rawtkinter_source(flow_data):
+    lines = [
+        "def draw(canvas):",
+        '    """Draw a svg2canvasx flow document onto an existing Tkinter Canvas."""',
+    ]
+    body_lines = []
+    for layer in flow_data.get("layers", []):
+        if layer.get("role") != "presentation":
+            continue
+        layer_name = layer.get("name") or "Unnamed Layer"
+        body_lines.append(f"    # Layer: {layer_name}")
+        for item in layer.get("items", []):
+            body_lines.extend(_rawtkinter_lines_for_item(item))
+    if not body_lines:
+        body_lines.append("    return canvas")
+    else:
+        body_lines.append("    return canvas")
+    lines.extend(body_lines)
+    lines.append("")
+    return "\n".join(lines)
 
 
 def _make_flow_layer(layer, role):
@@ -333,3 +389,242 @@ def _preview_style_from_draw(draw):
         "stroke_width": draw.get("stroke_width"),
         "stroke_dasharray_values": draw.get("dash"),
     }
+
+
+def _draw_flow_item_on_canvas(canvas, item):
+    kind = item.get("kind")
+    if kind == "rect":
+        _draw_flow_rect(canvas, item)
+        return
+    if kind in ("line", "path", "polyline"):
+        _draw_flow_line_like(canvas, item)
+        return
+    if kind == "polygon":
+        _draw_flow_polygon(canvas, item)
+        return
+    if kind in ("circle", "ellipse"):
+        _draw_flow_ellipse(canvas, item)
+        return
+    if kind == "text":
+        _draw_flow_text(canvas, item)
+        return
+
+
+def _draw_flow_rect(canvas, item):
+    draw = item.get("draw") or {}
+    if item.get("points"):
+        canvas.create_polygon(
+            _flatten_points(item.get("points") or []),
+            fill=_tk_fill(draw.get("fill")),
+            outline=_tk_paint(draw.get("stroke")),
+            width=_tk_width(draw.get("stroke_width")),
+            dash=_tk_dash(draw.get("dash")),
+        )
+        return
+    bbox = item.get("bbox") or [0.0, 0.0, 0.0, 0.0]
+    canvas.create_rectangle(
+        bbox[0],
+        bbox[1],
+        bbox[2],
+        bbox[3],
+        fill=_tk_fill(draw.get("fill")),
+        outline=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+    )
+
+
+def _draw_flow_line_like(canvas, item):
+    draw = item.get("draw") or {}
+    canvas.create_line(
+        _flatten_points(item.get("points") or []),
+        fill=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+        smooth=False,
+    )
+
+
+def _draw_flow_polygon(canvas, item):
+    draw = item.get("draw") or {}
+    canvas.create_polygon(
+        _flatten_points(item.get("points") or []),
+        fill=_tk_fill(draw.get("fill")),
+        outline=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+    )
+
+
+def _draw_flow_ellipse(canvas, item):
+    bbox = item.get("bbox") or [0.0, 0.0, 0.0, 0.0]
+    draw = item.get("draw") or {}
+    canvas.create_oval(
+        bbox[0],
+        bbox[1],
+        bbox[2],
+        bbox[3],
+        fill=_tk_fill(draw.get("fill")),
+        outline=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+    )
+
+
+def _draw_flow_text(canvas, item):
+    text_style = item.get("text_style") or {}
+    canvas.create_text(
+        (item.get("point") or [0.0, 0.0])[0],
+        (item.get("point") or [0.0, 0.0])[1],
+        text=item.get("text", ""),
+        anchor=text_style.get("anchor") or "sw",
+        angle=-(float(text_style.get("angle") or 0.0)),
+        font=_tk_font_spec(text_style),
+        fill=_tk_paint(text_style.get("fill")) or "black",
+    )
+
+
+def _tk_fill(value):
+    return "" if value in (None, "", "none") else value
+
+
+def _tk_paint(value):
+    return "" if value in (None, "", "none") else value
+
+
+def _tk_width(value):
+    if value is None:
+        return 1.0
+    return max(1.0, float(value))
+
+
+def _tk_dash(values):
+    if not values:
+        return None
+    return tuple(max(1, int(round(float(value)))) for value in values)
+
+
+def _tk_font_spec(text_style):
+    family = text_style.get("font_family") or "Arial"
+    size = max(1, int(round(float(text_style.get("font_size") or 12.0) * 0.75)))
+    modifiers = []
+    if text_style.get("bold"):
+        modifiers.append("bold")
+    if text_style.get("italic"):
+        modifiers.append("italic")
+    if modifiers:
+        return (family, size, " ".join(modifiers))
+    return (family, size)
+
+
+def _flatten_points(points):
+    output = []
+    for point in points or []:
+        output.extend(point)
+    return output
+
+
+def _safe_int(value):
+    if value is None:
+        return None
+    try:
+        return int(round(float(value)))
+    except Exception:
+        return None
+
+
+def _rawtkinter_lines_for_item(item):
+    kind = item.get("kind")
+    label = item.get("label")
+    lines = []
+    if label:
+        lines.append(f"    # {label}")
+    if kind == "rect":
+        lines.append(_rawtkinter_rect_call(item))
+        return lines
+    if kind in ("line", "path", "polyline"):
+        lines.append(_rawtkinter_line_call(item))
+        return lines
+    if kind == "polygon":
+        lines.append(_rawtkinter_polygon_call(item))
+        return lines
+    if kind in ("circle", "ellipse"):
+        lines.append(_rawtkinter_oval_call(item))
+        return lines
+    if kind == "text":
+        lines.append(_rawtkinter_text_call(item))
+        return lines
+    lines.append(f"    # Unsupported item kind skipped: {kind!r}")
+    return lines
+
+
+def _rawtkinter_rect_call(item):
+    draw = item.get("draw") or {}
+    kwargs = _raw_kwargs(
+        fill=_tk_fill(draw.get("fill")),
+        outline=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+    )
+    if item.get("points"):
+        return f"    canvas.create_polygon({_py(_flatten_points(item.get('points') or []))}, {kwargs})"
+    bbox = item.get("bbox") or [0.0, 0.0, 0.0, 0.0]
+    return f"    canvas.create_rectangle({bbox[0]!r}, {bbox[1]!r}, {bbox[2]!r}, {bbox[3]!r}, {kwargs})"
+
+
+def _rawtkinter_line_call(item):
+    draw = item.get("draw") or {}
+    kwargs = _raw_kwargs(
+        fill=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+        smooth=False,
+    )
+    return f"    canvas.create_line({_py(_flatten_points(item.get('points') or []))}, {kwargs})"
+
+
+def _rawtkinter_polygon_call(item):
+    draw = item.get("draw") or {}
+    kwargs = _raw_kwargs(
+        fill=_tk_fill(draw.get("fill")),
+        outline=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+    )
+    return f"    canvas.create_polygon({_py(_flatten_points(item.get('points') or []))}, {kwargs})"
+
+
+def _rawtkinter_oval_call(item):
+    draw = item.get("draw") or {}
+    kwargs = _raw_kwargs(
+        fill=_tk_fill(draw.get("fill")),
+        outline=_tk_paint(draw.get("stroke")),
+        width=_tk_width(draw.get("stroke_width")),
+        dash=_tk_dash(draw.get("dash")),
+    )
+    bbox = item.get("bbox") or [0.0, 0.0, 0.0, 0.0]
+    return f"    canvas.create_oval({bbox[0]!r}, {bbox[1]!r}, {bbox[2]!r}, {bbox[3]!r}, {kwargs})"
+
+
+def _rawtkinter_text_call(item):
+    text_style = item.get("text_style") or {}
+    point = item.get("point") or [0.0, 0.0]
+    kwargs = _raw_kwargs(
+        text=item.get("text", ""),
+        anchor=text_style.get("anchor") or "sw",
+        angle=-(float(text_style.get("angle") or 0.0)),
+        font=_tk_font_spec(text_style),
+        fill=_tk_paint(text_style.get("fill")) or "black",
+    )
+    return f"    canvas.create_text({point[0]!r}, {point[1]!r}, {kwargs})"
+
+
+def _raw_kwargs(**kwargs):
+    parts = []
+    for key, value in kwargs.items():
+        parts.append(f"{key}={_py(value)}")
+    return ", ".join(parts)
+
+
+def _py(value):
+    return repr(value)

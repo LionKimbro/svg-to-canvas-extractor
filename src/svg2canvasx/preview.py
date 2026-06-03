@@ -3,6 +3,8 @@ from pathlib import Path
 import tkinter
 import tkinter.font
 
+from .flow import create_toplevel_for_flow
+from .flow import load_flow_file
 from .flow import flow_to_preview_data
 
 
@@ -18,7 +20,15 @@ def preview_json_file(path, width=None, height=None, scale=1.0, font_scale=0.75,
     input_path = Path(path)
     data = json.loads(input_path.read_text(encoding="utf-8"))
     if data.get("format") == "svg2canvasx-flow":
-        data = flow_to_preview_data(data)
+        if show_annotations:
+            data = flow_to_preview_data(data)
+        else:
+            return preview_flow_data(
+                data,
+                title="svg2canvasx preview - " + input_path.name,
+                width=width,
+                height=height,
+            )
     preview_data(
         data,
         title="svg2canvasx preview - " + input_path.name,
@@ -30,6 +40,35 @@ def preview_json_file(path, width=None, height=None, scale=1.0, font_scale=0.75,
         show_ids=show_ids,
         show_annotations=show_annotations,
     )
+
+
+def preview_flow_file(path, title=None, width=None, height=None):
+    input_path = Path(path)
+    data = load_flow_file(path)
+    return preview_flow_data(
+        data,
+        title=title or ("svg2canvasx preview - " + input_path.name),
+        width=width,
+        height=height,
+    )
+
+
+def preview_flow_data(data, title, width=None, height=None):
+    root = tkinter.Tk()
+    root.title(title)
+    created = create_toplevel_for_flow(root, data)
+    toplevel = created["toplevel"]
+    canvas = created["canvas"]
+    toplevel.title(title)
+    canvas_width = width or _safe_int((data.get("canvas") or {}).get("width"))
+    canvas_height = height or _safe_int((data.get("canvas") or {}).get("height"))
+    if canvas_width:
+        canvas.configure(width=canvas_width)
+    if canvas_height:
+        canvas.configure(height=canvas_height)
+    root.withdraw()
+    toplevel.mainloop()
+    return created
 
 
 def preview_data(data, title, width=None, height=None, scale=1.0, font_scale=0.75, show_bboxes=False, show_ids=False, show_annotations=False):
