@@ -67,7 +67,8 @@ def preview_flow_data(data, title, width=None, height=None):
     if canvas_height:
         canvas.configure(height=canvas_height)
     root.withdraw()
-    toplevel.mainloop()
+    configure_preview_close_behavior(root, toplevel)
+    root.mainloop()
     return created
 
 
@@ -108,6 +109,7 @@ def preview_data(data, title, width=None, height=None, scale=1.0, font_scale=0.7
     if show_annotations:
         render_annotations(canvas, data.get("annotations", []), scale, options)
 
+    configure_preview_close_behavior(root, root)
     root.mainloop()
 
 
@@ -431,6 +433,24 @@ def get_tk_font_metrics(widget, font_spec):
         "descent": int(font_obj.metrics("descent")),
         "linespace": int(font_obj.metrics("linespace")),
     }
+
+
+def configure_preview_close_behavior(root, window):
+    def handle_close():
+        safe_destroy(window)
+        if window is not root:
+            safe_destroy(root)
+
+    window.protocol("WM_DELETE_WINDOW", handle_close)
+    return handle_close
+
+
+def safe_destroy(widget):
+    try:
+        if int(widget.winfo_exists()):
+            widget.destroy()
+    except Exception:
+        pass
 
 
 def _is_axis_aligned_rect(obj):

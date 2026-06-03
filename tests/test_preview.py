@@ -8,7 +8,9 @@ from svg2canvasx.preview import adjusted_text_position
 from svg2canvasx.preview import annotation_display_label
 from svg2canvasx.preview import annotation_style_object
 from svg2canvasx.preview import baseline_offset
+from svg2canvasx.preview import configure_preview_close_behavior
 from svg2canvasx.preview import make_tk_font
+from svg2canvasx.preview import safe_destroy
 from svg2canvasx.preview import scale_points
 from svg2canvasx.preview import style_dash
 from svg2canvasx.preview import style_fill
@@ -17,6 +19,49 @@ from svg2canvasx.preview import tk_text_angle
 
 
 class PreviewTests(unittest.TestCase):
+    def test_configure_preview_close_behavior_destroys_toplevel_and_root(self):
+        events = []
+
+        class FakeWidget:
+            def __init__(self, name):
+                self.name = name
+                self.exists = True
+                self.handler = None
+
+            def protocol(self, name, handler):
+                events.append((self.name, "protocol", name))
+                self.handler = handler
+
+            def destroy(self):
+                events.append((self.name, "destroy"))
+                self.exists = False
+
+            def winfo_exists(self):
+                return 1 if self.exists else 0
+
+        root = FakeWidget("root")
+        window = FakeWidget("window")
+        handle_close = configure_preview_close_behavior(root, window)
+        handle_close()
+        self.assertEqual(
+            events,
+            [
+                ("window", "protocol", "WM_DELETE_WINDOW"),
+                ("window", "destroy"),
+                ("root", "destroy"),
+            ],
+        )
+
+    def test_safe_destroy_ignores_missing_widget(self):
+        class FakeWidget:
+            def winfo_exists(self):
+                return 0
+
+            def destroy(self):
+                raise AssertionError("destroy should not be called")
+
+        safe_destroy(FakeWidget())
+
     def test_style_dash_scales_to_tuple(self):
         style = {"stroke_dasharray_values": [2.0, 1.0]}
         self.assertEqual(style_dash(style, 1.0), (2, 1))
