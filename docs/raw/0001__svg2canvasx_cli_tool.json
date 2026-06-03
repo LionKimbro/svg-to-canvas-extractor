@@ -1,0 +1,263 @@
+{
+  "document": {
+    "document-id": "svg2canvasx.cli-tool.raw.v1",
+    "title": "svg2canvasx CLI Tool",
+    "tags": [
+      "svg2canvasx",
+      "cli",
+      "tool",
+      "inkscape",
+      "svg",
+      "json",
+      "tkinter"
+    ],
+    "purpose": "Describe the command-line interface for svg2canvasx, including extraction, preview, flow conversion, and raw Tkinter source generation.",
+    "status": "draft",
+    "created": "2026-06-02",
+    "updated": "2026-06-02"
+  },
+  "overview": {
+    "description": "svg2canvasx is a command-line toolchain for turning Inkscape-authored SVG files into simpler intermediate formats that are easier to inspect, preview, and later interpret. The CLI currently supports extraction from SVG to normalized JSON, previewing extracted or flow JSON in Tkinter, conversion into a flow-oriented JSON format, and generation of raw Tkinter drawing source from a flow file.",
+    "core-ideas": [
+      "The extractor is intentionally Inkscape-oriented rather than a full SVG implementation.",
+      "The normalized extracted JSON is the main Stage 1 output.",
+      "The preview command is diagnostic and intentionally dumb: it renders what was extracted without schematic interpretation.",
+      "The flow command converts extracted JSON into a simplified flow document format.",
+      "The rawtkinter command turns a flow document into Python source that draws onto an existing Tkinter Canvas."
+    ]
+  },
+  "installation-and-entrypoints": {
+    "python-module-entrypoint": "python -m svg2canvasx ...",
+    "console-script-entrypoint": "svg2canvasx ...",
+    "notes": [
+      "The package defines a console script entrypoint named `svg2canvasx` in `pyproject.toml`.",
+      "When using a raw checkout with a src-layout and without installation, `PYTHONPATH=src` may be needed for `python -m svg2canvasx`."
+    ]
+  },
+  "commands": {
+    "extract": {
+      "summary": "Read an SVG file and emit normalized extracted JSON.",
+      "usage": [
+        "svg2canvasx extract input.svg -o output.json",
+        "svg2canvasx extract input.svg -o output.json --pretty",
+        "svg2canvasx extract input.svg -o output.json --curve-segments 16",
+        "svg2canvasx extract input.svg -o output.json --layer \"Layer 2: schematic objects\""
+      ],
+      "arguments": {
+        "input_svg": {
+          "type": "path",
+          "required": true,
+          "description": "Path to the source SVG file."
+        },
+        "output": {
+          "type": "path",
+          "required": true,
+          "description": "Path to the JSON file to write."
+        },
+        "layer": {
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "description": "Select one or more layer names or IDs."
+        },
+        "all-layers": {
+          "type": "flag",
+          "required": false,
+          "description": "Extract all visible layers rather than applying default layer selection."
+        },
+        "include-reference-layers": {
+          "type": "flag",
+          "required": false,
+          "description": "Include layers whose labels suggest grid/reference roles."
+        },
+        "annotations-as-objects": {
+          "type": "flag",
+          "required": false,
+          "description": "Keep annotation layer objects in the main `objects` list rather than separate annotation handling."
+        },
+        "no-annotations": {
+          "type": "flag",
+          "required": false,
+          "description": "Suppress extraction of annotations."
+        },
+        "pretty": {
+          "type": "flag",
+          "required": false,
+          "description": "Write indented JSON."
+        },
+        "debug": {
+          "type": "flag",
+          "required": false,
+          "description": "Enable additional debug-oriented behavior where supported."
+        },
+        "include-hidden": {
+          "type": "flag",
+          "required": false,
+          "description": "Include hidden SVG elements that would normally be skipped."
+        },
+        "no-world-geometry": {
+          "type": "flag",
+          "required": false,
+          "description": "Do not compute world geometry fields."
+        },
+        "curve-segments": {
+          "type": "integer",
+          "required": false,
+          "default": 16,
+          "description": "Number of sampling segments for cubic/quadratic path flattening."
+        }
+      },
+      "outputs": [
+        "Normalized Stage 1 JSON containing `source`, `svg`, `layers`, `objects`, and `warnings`.",
+        "Sampled path points for supported curved path commands when possible."
+      ]
+    },
+    "preview": {
+      "summary": "Open a Tkinter preview window and draw extracted JSON or flow JSON.",
+      "usage": [
+        "svg2canvasx preview extracted.json",
+        "svg2canvasx preview extracted.json --width 1100 --height 900",
+        "svg2canvasx preview extracted.json --scale 1.0 --font-scale 0.75",
+        "svg2canvasx preview extracted.json --show-bboxes --show-ids",
+        "svg2canvasx preview flow.json"
+      ],
+      "arguments": {
+        "input_json": {
+          "type": "path",
+          "required": true,
+          "description": "Path to extracted JSON or flow JSON."
+        },
+        "width": {
+          "type": "integer",
+          "required": false,
+          "description": "Override preview window canvas width."
+        },
+        "height": {
+          "type": "integer",
+          "required": false,
+          "description": "Override preview window canvas height."
+        },
+        "scale": {
+          "type": "number",
+          "required": false,
+          "default": 1.0,
+          "description": "Scale all geometry."
+        },
+        "font-scale": {
+          "type": "number",
+          "required": false,
+          "default": 0.75,
+          "description": "Scale preview font sizes only."
+        },
+        "show-bboxes": {
+          "type": "flag",
+          "required": false,
+          "description": "Draw diagnostic bounding boxes."
+        },
+        "show-ids": {
+          "type": "flag",
+          "required": false,
+          "description": "Draw object IDs or labels."
+        },
+        "show-annotations": {
+          "type": "flag",
+          "required": false,
+          "description": "Draw annotation overlays when previewing extracted JSON."
+        }
+      },
+      "notes": [
+        "The preview command is intended as a visual diagnostic rather than a semantic renderer.",
+        "Text placement uses Tk font metrics to approximate SVG baseline placement."
+      ]
+    },
+    "flow": {
+      "summary": "Convert extracted JSON into the package's flow JSON format.",
+      "usage": [
+        "svg2canvasx flow extracted.json -o flow.json",
+        "svg2canvasx flow extracted.json -o flow.json --pretty"
+      ],
+      "arguments": {
+        "input_json": {
+          "type": "path",
+          "required": true,
+          "description": "Path to extracted Stage 1 JSON."
+        },
+        "output": {
+          "type": "path",
+          "required": true,
+          "description": "Path to the flow JSON file to write."
+        },
+        "pretty": {
+          "type": "flag",
+          "required": false,
+          "description": "Write indented JSON."
+        }
+      },
+      "outputs": [
+        "A document whose top-level `format` is `svg2canvasx-flow` and whose payload is oriented around layers, presentation items, and annotation regions."
+      ]
+    },
+    "rawtkinter": {
+      "summary": "Generate Python source that draws a flow document onto an existing Tkinter Canvas.",
+      "usage": [
+        "svg2canvasx rawtkinter flow.json -o draw_flow.py"
+      ],
+      "arguments": {
+        "input_json": {
+          "type": "path",
+          "required": true,
+          "description": "Path to a flow JSON file."
+        },
+        "output": {
+          "type": "path",
+          "required": true,
+          "description": "Path to the Python source file to write."
+        }
+      },
+      "outputs": [
+        "Python source defining a `draw(canvas)` function that issues Canvas drawing calls."
+      ]
+    },
+    "help-layout": {
+      "summary": "Print the Inkscape authoring conventions understood by the extractor.",
+      "usage": [
+        "svg2canvasx help-layout"
+      ]
+    }
+  },
+  "common-workflows": {
+    "extract-then-preview": {
+      "steps": [
+        "Run `svg2canvasx extract input.svg -o extracted.json --pretty`.",
+        "Inspect `extracted.json` for objects, layers, text, paths, and warnings.",
+        "Run `svg2canvasx preview extracted.json --show-bboxes --show-ids`."
+      ]
+    },
+    "extract-then-flow": {
+      "steps": [
+        "Run `svg2canvasx extract input.svg -o extracted.json`.",
+        "Run `svg2canvasx flow extracted.json -o flow.json --pretty`.",
+        "Use the flow file either with the preview command or the package's flow helper functions."
+      ]
+    },
+    "flow-to-rawtkinter-source": {
+      "steps": [
+        "Run `svg2canvasx flow extracted.json -o flow.json`.",
+        "Run `svg2canvasx rawtkinter flow.json -o draw_flow.py`.",
+        "Import or paste `draw(canvas)` into another Tkinter application."
+      ]
+    }
+  },
+  "behavioral-notes": {
+    "warnings-and-robustness": [
+      "The tool prefers warnings over hard failure for partially unsupported SVG content.",
+      "Unsupported path arcs currently produce warnings rather than curve approximations.",
+      "Curved cubic and quadratic paths are sampled into point lists rather than preserved as true parametric curves."
+    ],
+    "inkscape-orientation": [
+      "Layer labels containing `grid` or `reference` are treated specially by default.",
+      "Annotation layer handling is convention-based and uses labels rather than full SVG semantics.",
+      "The CLI is intentionally shaped around the repository's Inkscape drafting workflow."
+    ]
+  }
+}

@@ -6,6 +6,8 @@ from .flow import generate_rawtkinter_source
 from .flow import load_flow_file
 from .output import write_json_file
 from .preview import preview_json_file
+from .semantics import format_semantics_data
+from .semantics import format_semantics_file
 
 
 LAYOUT_HELP_TEXT = """svg2canvasx Inkscape Layout Conventions
@@ -82,6 +84,11 @@ def build_parser():
     rawtkinter_parser.add_argument("input_json")
     rawtkinter_parser.add_argument("-o", "--output", required=True)
 
+    semantics_parser = subparsers.add_parser("semantics")
+    semantics_parser.add_argument("input_json")
+    semantics_parser.add_argument("-o", "--output")
+    semantics_parser.add_argument("--pretty", action="store_true")
+
     subparsers.add_parser(
         "help-layout",
         help="show Inkscape layout and annotation conventions",
@@ -132,6 +139,16 @@ def main(argv=None):
         source = generate_rawtkinter_source(data)
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(source)
+        return 0
+
+    if args.command == "semantics":
+        if args.output:
+            with open(args.input_json, "r", encoding="utf-8") as handle:
+                import json
+                input_data = json.load(handle)
+            write_json_file(args.output, format_semantics_data(input_data), pretty=args.pretty)
+        else:
+            print(format_semantics_file(args.input_json, pretty=args.pretty))
         return 0
 
     if args.command == "help-layout":

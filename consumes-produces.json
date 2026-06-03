@@ -1,0 +1,3 @@
+{"consumes": ["Inkscape SVG"],
+ "produces": ["extracted JSON", "flow JSON", "tkinter preview", "python code (for rendering the diagram)"]}
+
