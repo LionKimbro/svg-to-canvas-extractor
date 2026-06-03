@@ -5,6 +5,43 @@ from .output import write_json_file
 from .preview import preview_json_file
 
 
+LAYOUT_HELP_TEXT = """svg2canvasx Inkscape Layout Conventions
+
+svg2canvasx is intentionally Inkscape-oriented.
+It uses Inkscape layer labels and inkscape:label values as authoring conventions during extraction.
+
+Layer labels:
+  contains "grid" or "reference"      skipped by default
+  contains "annotation"               extracted into JSON annotations[]
+  anything else visible               extracted into JSON objects[]
+
+Annotation labels:
+  region.NAME                         semantic region rectangle
+  guide.NAME                          optional guide
+  note.NAME                           optional note
+
+region.NAME annotations are interpreted generally as semantic region markers.
+
+Example layer setup:
+  Layer 1: grid/reference
+  Layer 2: schematic objects
+  Layer 3: annotations
+
+Example annotation object labels:
+  region.command_entries
+  region.argument_entries
+  region.argument_type_matrix
+  region.command_argument_matrix
+  region.command_descriptions
+  region.argument_descriptions
+  region.buttons
+
+Preview behavior:
+  preview renders objects[] by default
+  preview --show-annotations renders annotations as diagnostic overlays
+"""
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="svg2canvasx")
     subparsers = parser.add_subparsers(dest="command")
@@ -32,6 +69,12 @@ def build_parser():
     preview_parser.add_argument("--show-bboxes", action="store_true")
     preview_parser.add_argument("--show-ids", action="store_true")
     preview_parser.add_argument("--show-annotations", action="store_true")
+
+    subparsers.add_parser(
+        "help-layout",
+        help="show Inkscape layout and annotation conventions",
+        description="Print the Inkscape authoring conventions understood by svg2canvasx.",
+    )
     return parser
 
 
@@ -65,6 +108,10 @@ def main(argv=None):
             show_ids=args.show_ids,
             show_annotations=args.show_annotations,
         )
+        return 0
+
+    if args.command == "help-layout":
+        print(LAYOUT_HELP_TEXT)
         return 0
 
     parser.print_help()
