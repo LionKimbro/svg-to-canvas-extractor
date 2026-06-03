@@ -1,6 +1,7 @@
 import argparse
 
 from .extract import extract_svg_file
+from .flow import convert_extracted_file_to_flow
 from .output import write_json_file
 from .preview import preview_json_file
 
@@ -70,6 +71,11 @@ def build_parser():
     preview_parser.add_argument("--show-ids", action="store_true")
     preview_parser.add_argument("--show-annotations", action="store_true")
 
+    flow_parser = subparsers.add_parser("flow")
+    flow_parser.add_argument("input_json")
+    flow_parser.add_argument("-o", "--output", required=True)
+    flow_parser.add_argument("--pretty", action="store_true")
+
     subparsers.add_parser(
         "help-layout",
         help="show Inkscape layout and annotation conventions",
@@ -108,6 +114,11 @@ def main(argv=None):
             show_ids=args.show_ids,
             show_annotations=args.show_annotations,
         )
+        return 0
+
+    if args.command == "flow":
+        data = convert_extracted_file_to_flow(args.input_json)
+        write_json_file(args.output, data, pretty=args.pretty)
         return 0
 
     if args.command == "help-layout":

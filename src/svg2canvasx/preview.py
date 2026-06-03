@@ -3,6 +3,8 @@ from pathlib import Path
 import tkinter
 import tkinter.font
 
+from .flow import flow_to_preview_data
+
 
 kDEFAULT_WIDTH = 1100
 kDEFAULT_HEIGHT = 900
@@ -15,6 +17,8 @@ kANNOTATION_FILL = ""
 def preview_json_file(path, width=None, height=None, scale=1.0, font_scale=0.75, show_bboxes=False, show_ids=False, show_annotations=False):
     input_path = Path(path)
     data = json.loads(input_path.read_text(encoding="utf-8"))
+    if data.get("format") == "svg2canvasx-flow":
+        data = flow_to_preview_data(data)
     preview_data(
         data,
         title="svg2canvasx preview - " + input_path.name,
