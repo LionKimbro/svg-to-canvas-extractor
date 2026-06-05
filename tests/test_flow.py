@@ -108,7 +108,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "r1",
                     "kind": "rect",
-                    "layer": {"id": "layer2", "label": "schematic objects", "role": "presentation"},
+                    "layer": "layer2",
                     "inkscape_label": "main.rect",
                     "style": {"fill": "none", "stroke": "#000000", "stroke_width": 2.0, "stroke_dasharray_values": [2.0, 1.0]},
                     "world": {"bbox": [10.0, 20.0, 40.0, 60.0], "points": [[10.0, 20.0], [40.0, 20.0], [40.0, 60.0], [10.0, 60.0]], "matrix": [1, 0, 0, 1, 0, 0]},
@@ -116,7 +116,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "t1",
                     "kind": "text",
-                    "layer": {"id": "layer2", "label": "schematic objects", "role": "presentation"},
+                    "layer": "layer2",
                     "label": "title.text",
                     "text": "Hello",
                     "style": {"font_family": "Arial", "font_size": 18.0, "font_weight": "700", "font_style": "italic", "fill": "#222222"},
@@ -128,7 +128,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "a1",
                     "kind": "rect",
-                    "layer": {"id": "layer3", "label": "semantic regions", "role": "annotation"},
+                    "layer": "layer3",
                     "inkscape_label": "region.main_panel",
                     "annotation": {"kind": "region", "name": "main_panel", "raw_label": "region.main_panel"},
                     "style": {"stroke": "#00ffff"},

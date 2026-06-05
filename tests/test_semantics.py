@@ -18,12 +18,12 @@ class SemanticsTests(unittest.TestCase):
             ],
             "annotations": [
                 {
-                    "layer": {"label": "annotations", "role": "annotation"},
+                    "layer": "layer3",
                     "inkscape_label": "region.buttons",
                     "annotation": {"kind": "region", "name": "buttons"},
                 },
                 {
-                    "layer": {"label": "annotations", "role": "annotation"},
+                    "layer": "layer3",
                     "inkscape_label": "command.1.name",
                     "annotation": {"kind": "unknown", "name": None},
                 },

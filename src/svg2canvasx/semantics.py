@@ -22,10 +22,11 @@ def format_semantics_json(data, pretty=False):
 def _extracted_semantics_data(data):
     layers = data.get("layers") or []
     annotations = data.get("annotations") or []
+    layer_index = _index_layers(layers)
     names_by_layer = {}
     regions_by_layer = {}
     for obj in annotations:
-        layer = obj.get("layer") or {}
+        layer = _resolve_layer(layer_index, obj.get("layer"))
         layer_name = _layer_name(layer)
         raw_name = _annotation_label(obj)
         if raw_name:
@@ -101,6 +102,25 @@ def _build_semantics_brief(layers, names_by_layer, regions_by_layer):
 
 def _layer_name(layer):
     return layer.get("label") or layer.get("name") or layer.get("id") or "Unnamed Layer"
+
+
+def _index_layers(layers):
+    output = {}
+    for layer in layers:
+        layer_id = layer.get("id")
+        if layer_id is not None:
+            output[layer_id] = layer
+    return output
+
+
+def _resolve_layer(layer_index, layer_ref):
+    if isinstance(layer_ref, dict):
+        return layer_ref
+    if layer_ref is not None and layer_ref in layer_index:
+        return layer_index[layer_ref]
+    if layer_ref is not None:
+        return {"id": layer_ref}
+    return {}
 
 
 def _infer_role_from_names(layer_name, names_by_layer, regions_by_layer):

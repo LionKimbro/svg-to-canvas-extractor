@@ -36,6 +36,7 @@ class ExtractTests(unittest.TestCase):
         )
         obj = data["objects"][0]
         self.assertEqual(obj["kind"], "rect")
+        self.assertEqual(obj["layer"], "layer2")
         self.assertEqual(obj["world"]["bbox"], [10.0, 20.0, 40.0, 60.0])
 
     def test_rect_inside_translate_group(self):
@@ -223,6 +224,8 @@ class ExtractTests(unittest.TestCase):
         )
         self.assertEqual([item["svg_id"] for item in data["objects"]], ["draw1"])
         self.assertEqual([item["svg_id"] for item in data["annotations"]], ["anno1"])
+        self.assertEqual(data["objects"][0]["layer"], "layer_draw")
+        self.assertEqual(data["annotations"][0]["layer"], "layer_anno")
         self.assertEqual(data["annotations"][0]["annotation"]["kind"], "region")
         self.assertEqual(data["annotations"][0]["annotation"]["name"], "command_entries")
         self.assertEqual(data["annotations"][0]["annotation"]["raw_label"], "region.command_entries")

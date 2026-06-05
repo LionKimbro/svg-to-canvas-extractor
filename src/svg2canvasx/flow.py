@@ -17,6 +17,7 @@ def load_flow_file(path):
 def convert_extracted_data_to_flow(data):
     layers_by_key = {}
     ordered_keys = []
+    layer_index = _index_extracted_layers(data)
 
     for layer in data.get("layers", []):
         role = "annotation" if layer.get("role") == "annotation" else "presentation"
@@ -26,7 +27,7 @@ def convert_extracted_data_to_flow(data):
             ordered_keys.append(key)
 
     for obj in data.get("objects", []):
-        layer = obj.get("layer") or {}
+        layer = _resolve_extracted_layer(data, layer_index, obj.get("layer"))
         key = _layer_key(layer)
         if key not in layers_by_key:
             layers_by_key[key] = _make_flow_layer(layer, "presentation")
@@ -36,7 +37,7 @@ def convert_extracted_data_to_flow(data):
             layers_by_key[key]["items"].append(item)
 
     for obj in data.get("annotations", []):
-        layer = obj.get("layer") or {}
+        layer = _resolve_extracted_layer(data, layer_index, obj.get("layer"))
         key = _layer_key(layer)
         if key not in layers_by_key:
             layers_by_key[key] = _make_flow_layer(layer, "annotation")
@@ -159,6 +160,25 @@ def _make_flow_layer(layer, role):
 
 def _layer_key(layer):
     return (layer.get("id"), layer.get("label"), layer.get("role"))
+
+
+def _index_extracted_layers(data):
+    output = {}
+    for layer in data.get("layers", []):
+        layer_id = layer.get("id")
+        if layer_id is not None:
+            output[layer_id] = layer
+    return output
+
+
+def _resolve_extracted_layer(data, layer_index, layer_ref):
+    if isinstance(layer_ref, dict):
+        return layer_ref
+    if layer_ref is not None and layer_ref in layer_index:
+        return layer_index[layer_ref]
+    if layer_ref is not None:
+        return {"id": layer_ref}
+    return {}
 
 
 def _convert_presentation_item(obj):

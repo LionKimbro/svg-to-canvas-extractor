@@ -326,7 +326,8 @@ def _base_object(node, kind, layer_info, groups, style, world_matrix, state):
         "uid": get_node_id(node) or "auto_{:05d}".format(state["uid_counter"]),
         "svg_id": get_node_id(node),
         "kind": kind,
-        "layer": _copy_layer(layer_info),
+        "layer": _layer_id(layer_info),
+        "_layer_role": (layer_info or {}).get("role"),
         "groups": [_copy_group(item) for item in groups if item.get("id") or item.get("label")],
         "style": style_to_output(style),
         "raw_style": node.get("style"),
@@ -410,6 +411,12 @@ def _copy_layer(layer_info):
     return output
 
 
+def _layer_id(layer_info):
+    if layer_info is None:
+        return None
+    return layer_info.get("id")
+
+
 def _copy_group(group_info):
     return {
         "id": group_info.get("id"),
@@ -420,7 +427,7 @@ def _copy_group(group_info):
 
 def _push_object(state, obj):
     if obj is not None:
-        role = ((obj.get("layer") or {}).get("role")) or "presentation"
+        role = obj.pop("_layer_role", None) or "presentation"
         if role == "annotation":
             obj["annotation"] = _build_annotation_info(obj)
             state["annotations"].append(obj)
@@ -457,7 +464,7 @@ def _build_visual_region_annotation(obj):
         "label": obj.get("label"),
         "inkscape_label": obj.get("inkscape_label"),
         "tags": list(obj.get("tags") or []),
-        "layer": _copy_layer(obj.get("layer")),
+        "layer": obj.get("layer"),
         "annotation": {
             "kind": "region",
             "name": obj.get("label"),
