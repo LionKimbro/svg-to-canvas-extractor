@@ -50,8 +50,6 @@ def _flow_semantics_data(data):
     for layer in flow_layers:
         layer_name = layer.get("name") or "Unnamed Layer"
         ordered_layers.append({"label": layer_name, "role": layer.get("role")})
-        if layer.get("role") != "annotation":
-            continue
         for region in layer.get("regions") or []:
             raw_name = region.get("label") or region.get("name")
             if raw_name:
@@ -112,4 +110,4 @@ def _infer_role_from_names(layer_name, names_by_layer, regions_by_layer):
 
 
 def _annotation_label(obj):
-    return obj.get("inkscape_label") or obj.get("label") or obj.get("svg_id") or obj.get("uid")
+    return obj.get("label") or obj.get("inkscape_label") or obj.get("svg_id") or obj.get("uid")

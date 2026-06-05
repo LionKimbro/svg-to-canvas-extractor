@@ -65,11 +65,6 @@
           "required": false,
           "description": "Extract all visible layers rather than applying default layer selection."
         },
-        "include-reference-layers": {
-          "type": "flag",
-          "required": false,
-          "description": "Include layers whose labels suggest grid/reference roles."
-        },
         "annotations-as-objects": {
           "type": "flag",
           "required": false,
@@ -79,7 +74,8 @@
           "type": "flag",
           "required": false,
           "description": "Suppress extraction of annotations."
-        },
+        }
+        ,
         "pretty": {
           "type": "flag",
           "required": false,
@@ -250,12 +246,12 @@
   },
   "behavioral-notes": {
     "warnings-and-robustness": [
-      "The tool prefers warnings over hard failure for partially unsupported SVG content.",
+      "The tool prefers warnings over hard failure for partially unsupported SVG content, except for invalid layer role tagging.",
       "Unsupported path arcs currently produce warnings rather than curve approximations.",
       "Curved cubic and quadratic paths are sampled into point lists rather than preserved as true parametric curves."
     ],
     "inkscape-orientation": [
-      "Layer labels containing `grid` or `reference` are treated specially by default.",
+      "Layer role selection depends on explicit bracket tags such as `[comment]`, `[visual]`, and `[annotate]`.",
       "Annotation layer handling is convention-based and uses labels rather than full SVG semantics.",
       "The CLI is intentionally shaped around the repository's Inkscape drafting workflow."
     ]

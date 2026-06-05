@@ -28,8 +28,8 @@ class CliTests(unittest.TestCase):
         output = stream.getvalue()
         self.assertEqual(code, 0)
         self.assertIn("svg2canvasx Inkscape Layout Conventions", output)
-        self.assertIn('contains "annotation"', output)
-        self.assertIn("region.command_entries", output)
+        self.assertIn("[annotate]", output)
+        self.assertIn("command.1.entry [region]", output)
         self.assertEqual(output.strip(), LAYOUT_HELP_TEXT.strip())
 
     def test_rawtkinter_command_writes_draw_function(self):

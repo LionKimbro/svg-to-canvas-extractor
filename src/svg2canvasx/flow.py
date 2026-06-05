@@ -52,7 +52,7 @@ def convert_extracted_data_to_flow(data):
             if layer["regions"]:
                 output_layers.append(layer)
             continue
-        if layer["items"]:
+        if layer["items"] or layer["regions"]:
             output_layers.append(layer)
 
     source = data.get("source") or {}
@@ -79,9 +79,9 @@ def flow_to_preview_data(data):
     canvas = data.get("canvas") or {}
     for layer in data.get("layers", []):
         role = layer.get("role")
+        for region in layer.get("regions", []):
+            annotations.append(_annotation_region_to_preview_object(region, layer))
         if role == "annotation":
-            for region in layer.get("regions", []):
-                annotations.append(_annotation_region_to_preview_object(region, layer))
             continue
         for item in layer.get("items", []):
             objects.append(_presentation_item_to_preview_object(item, layer))
@@ -150,10 +150,9 @@ def _make_flow_layer(layer, role):
     output = {
         "name": layer.get("label") or layer.get("id") or "Unnamed Layer",
         "role": role,
+        "regions": [],
     }
-    if role == "annotation":
-        output["regions"] = []
-    else:
+    if role != "annotation":
         output["items"] = []
     return output
 
@@ -232,6 +231,7 @@ def _convert_annotation_region(obj):
         "name": _annotation_name(label, annotation),
         "shape": shape,
         "bbox": bbox,
+        "source": annotation.get("source"),
     }
 
 

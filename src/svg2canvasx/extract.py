@@ -20,6 +20,7 @@ from .svgparse import is_layer
 from .svgparse import load_svg
 from .svgparse import local_name
 from .svgparse import normalize_source_path
+from .svgparse import parse_label_metadata
 from .transforms import apply_matrix
 from .transforms import copy_matrix
 from .transforms import extract_rotation_angle
@@ -32,7 +33,6 @@ def extract_svg_file(
     path,
     layer_names=None,
     extract_all_layers=False,
-    include_reference_layers=False,
     annotations_as_objects=False,
     no_annotations=False,
     include_hidden=False,
@@ -58,13 +58,8 @@ def extract_svg_file(
         "no_annotations": no_annotations,
     }
 
-    layers = _discover_layers(root)
-    selected = _choose_layers(
-        layers,
-        layer_names,
-        extract_all_layers,
-        include_reference_layers,
-    )
+    layers = _discover_layers(root, state)
+    selected = _choose_layers(layers, layer_names, extract_all_layers)
     state["selected_layers"] = selected
     state["layers"] = [_copy_layer(layer) for layer in layers]
 
@@ -109,7 +104,9 @@ def walk_node(node, state, parent_matrix, parent_style, layer_info, groups):
 
     if name == "g":
         if is_layer(node):
-            current_layer = get_layer_info(node)
+            current_layer = get_layer_info(node, state["warnings"])
+            if not _layer_is_walkable(current_layer, state):
+                return
             if _should_skip_layer(current_layer, state["selected_layers"]):
                 return
         else:
@@ -320,15 +317,15 @@ def extract_ellipse_like(node, layer_info, groups, style, world_matrix, state, n
     return obj
 
 
-def _discover_layers(root):
+def _discover_layers(root, state):
     layers = []
     for child in list(root):
         if local_name(child.tag) == "g" and is_layer(child):
-            layers.append(get_layer_info(child))
+            layers.append(get_layer_info(child, state["warnings"]))
     return layers
 
 
-def _choose_layers(layers, layer_names, extract_all_layers, include_reference_layers):
+def _choose_layers(layers, layer_names, extract_all_layers):
     if extract_all_layers:
         return layers
     if layer_names:
@@ -341,15 +338,15 @@ def _choose_layers(layers, layer_names, extract_all_layers, include_reference_la
     return [
         layer
         for layer in layers
-        if _should_include_layer_by_default(layer, include_reference_layers)
+        if _should_include_layer_by_default(layer)
     ]
 
 
-def _should_include_layer_by_default(layer_info, include_reference_layers):
+def _should_include_layer_by_default(layer_info):
     role = layer_info.get("role")
-    if role == "reference":
-        return include_reference_layers
-    return True
+    if role in ("presentation", "annotation"):
+        return True
+    return False
 
 
 def _should_skip_layer(layer_info, selected_layers):
@@ -359,6 +356,13 @@ def _should_skip_layer(layer_info, selected_layers):
         if item.get("id") == layer_info.get("id") and item.get("label") == layer_info.get("label"):
             return False
     return True
+
+
+def _layer_is_walkable(layer_info, state):
+    role = (layer_info or {}).get("role")
+    if role in ("presentation", "annotation"):
+        return True
+    return False
 
 
 def _group_info(node):
@@ -371,7 +375,8 @@ def _group_info(node):
 
 def _base_object(node, kind, layer_info, groups, style, world_matrix, state):
     state["uid_counter"] += 1
-    label = get_inkscape_label(node)
+    raw_label = get_inkscape_label(node)
+    label_info = parse_label_metadata(raw_label)
     output = {
         "uid": get_node_id(node) or "auto_{:05d}".format(state["uid_counter"]),
         "svg_id": get_node_id(node),
@@ -380,10 +385,12 @@ def _base_object(node, kind, layer_info, groups, style, world_matrix, state):
         "groups": [_copy_group(item) for item in groups if item.get("id") or item.get("label")],
         "style": style_to_output(style),
         "raw_style": node.get("style"),
+        "tags": label_info["tags"],
     }
-    if label is not None:
-        output["label"] = label
-        output["inkscape_label"] = label
+    if label_info["clean_label"] is not None:
+        output["label"] = label_info["clean_label"]
+    if raw_label is not None:
+        output["inkscape_label"] = raw_label
     return output
 
 
@@ -446,11 +453,16 @@ def _effective_text_anchor(style, spans):
 def _copy_layer(layer_info):
     if layer_info is None:
         return None
-    return {
+    output = {
         "id": layer_info.get("id"),
         "label": layer_info.get("label"),
         "role": layer_info.get("role"),
     }
+    if layer_info.get("tags"):
+        output["tags"] = list(layer_info.get("tags"))
+    if layer_info.get("inkscape_label") is not None:
+        output["inkscape_label"] = layer_info.get("inkscape_label")
+    return output
 
 
 def _copy_group(group_info):
@@ -463,7 +475,7 @@ def _copy_group(group_info):
 
 def _push_object(state, obj):
     if obj is not None:
-        role = ((obj.get("layer") or {}).get("role")) or "drawable"
+        role = ((obj.get("layer") or {}).get("role")) or "presentation"
         if role == "annotation":
             if state.get("no_annotations"):
                 return
@@ -474,20 +486,51 @@ def _push_object(state, obj):
                 state["annotations"].append(obj)
             return
         state["objects"].append(obj)
+        if role == "presentation" and "region" in (obj.get("tags") or []):
+            if state.get("no_annotations"):
+                return
+            state["annotations"].append(_build_visual_region_annotation(obj))
 
 
 def _build_annotation_info(obj):
-    raw_label = obj.get("inkscape_label") or obj.get("label")
-    if raw_label and raw_label.startswith("region."):
+    clean_label = obj.get("label")
+    if clean_label and clean_label.startswith("region."):
         return {
             "kind": "region",
-            "name": raw_label.split(".", 1)[1] or None,
-            "raw_label": raw_label,
+            "name": clean_label.split(".", 1)[1] or None,
+            "raw_label": clean_label,
+            "source": "annotation-layer",
         }
     return {
         "kind": "unknown",
         "name": None,
-        "raw_label": raw_label,
+        "raw_label": clean_label,
+        "source": "annotation-layer",
+    }
+
+
+def _build_visual_region_annotation(obj):
+    bbox = ((obj.get("world") or {}).get("bbox")) or [0.0, 0.0, 0.0, 0.0]
+    x0_value, y0_value, x1_value, y1_value = bbox
+    return {
+        "uid": (obj.get("uid") or "region") + "__region",
+        "svg_id": obj.get("svg_id"),
+        "kind": "rect",
+        "label": obj.get("label"),
+        "inkscape_label": obj.get("inkscape_label"),
+        "tags": list(obj.get("tags") or []),
+        "layer": _copy_layer(obj.get("layer")),
+        "annotation": {
+            "kind": "region",
+            "name": obj.get("label"),
+            "raw_label": obj.get("label"),
+            "source": "visual-item",
+        },
+        "world": {
+            "bbox": bbox,
+            "points": [[x0_value, y0_value], [x1_value, y0_value], [x1_value, y1_value], [x0_value, y1_value]],
+            "matrix": [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        },
     }
 
 

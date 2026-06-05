@@ -13,33 +13,31 @@ from .semantics import format_semantics_file
 LAYOUT_HELP_TEXT = """svg2canvasx Inkscape Layout Conventions
 
 svg2canvasx is intentionally Inkscape-oriented.
-It uses Inkscape layer labels and inkscape:label values as authoring conventions during extraction.
+It uses explicit bracket tags in Inkscape layer labels and object labels during extraction.
 
-Layer labels:
-  contains "grid" or "reference"      skipped by default
-  contains "annotation"               extracted into JSON annotations[]
-  anything else visible               extracted into JSON objects[]
+Layer tags:
+  [comment]   ignored/skipped by default
+  [visual]    extracted as presentation items
+  [annotate]  extracted as annotation regions
 
-Annotation labels:
-  region.NAME                         semantic region rectangle
-  guide.NAME                          optional guide
-  note.NAME                           optional note
-
-region.NAME annotations are interpreted generally as semantic region markers.
+Object tags:
+  [region]    object is rendered normally and also creates an annotation region from its bbox
 
 Example layer setup:
-  Layer 1: grid/reference
-  Layer 2: schematic objects
-  Layer 3: annotations
+  [comment] grid/reference
+  [visual] schematic objects
+  [annotate] semantic regions
 
-Example annotation object labels:
+Example object label on visual layer:
+  command.1.entry [region]
+
+Meaning:
+  The object is rendered normally and also creates an annotation region using its bbox.
+
+Annotation layer labels:
   region.command_entries
-  region.argument_entries
-  region.argument_type_matrix
-  region.command_argument_matrix
-  region.command_descriptions
-  region.argument_descriptions
-  region.buttons
+  command.1.name
+  command.2.arg.1.applicable
 
 Preview behavior:
   preview renders objects[] by default
@@ -56,7 +54,6 @@ def build_parser():
     extract_parser.add_argument("-o", "--output", required=True)
     extract_parser.add_argument("--layer", action="append", dest="layers")
     extract_parser.add_argument("--all-layers", action="store_true")
-    extract_parser.add_argument("--include-reference-layers", action="store_true")
     extract_parser.add_argument("--annotations-as-objects", action="store_true")
     extract_parser.add_argument("--no-annotations", action="store_true")
     extract_parser.add_argument("--pretty", action="store_true")
@@ -105,7 +102,6 @@ def main(argv=None):
             args.input_svg,
             layer_names=args.layers,
             extract_all_layers=args.all_layers,
-            include_reference_layers=args.include_reference_layers,
             annotations_as_objects=args.annotations_as_objects,
             no_annotations=args.no_annotations,
             include_hidden=args.include_hidden,

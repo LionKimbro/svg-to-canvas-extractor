@@ -1,0 +1,73 @@
+
+  == ﻿Layer Tags in svg2canvasx ==
+
+  svg2canvasx expects Inkscape SVG data to be structured into layers for
+  processing.
+
+  The names of the layers are up to the user, but explicit bracket tags are
+  used to communicate to the extracter what role the layer plays in the
+  pipeline.
+
+
+    [comment]
+    
+  A [comment] layer is treated as non-semantic authoring support.  This is the
+  place for grids, rulers, construction marks, scratch notes, or anything else
+  that should normally stay out of the extracted result.  These layers are
+  skipped.
+
+
+    [visual]
+
+  A [visual] layer is treated as presentation geometry.  Objects on this layer
+  become the drawable items that appear in the expanded extraction JSON, the
+  preview window, and the later flow conversion.  Rectangles, lines, paths,
+  text, circles, and other supported SVG elements on a [visual] layer are
+  extracted as presentation items with geometry, style, world transforms, and
+  labels preserved.
+
+
+    [annotate]
+    
+  An [annotate] layer is treated as semantic markup.  Objects on this layer
+  are not primarily for visual presentation; instead, they become annotation
+  entries.  These annotations are later used to build compact semantic briefs
+  and flow-layer regions.  Labels on annotation objects carry most of the
+  meaning, such as region.command_entries or command.2.arg.1.applicable.
+
+
+  Unknown or Untagged Layers
+
+  Layers with no recognized bracket tags are treated as layout problems,
+  and results in failure during execution.
+
+
+  Object-Level Tags
+
+  Objects can also use bracket tags in their Inkscape labels.  The important
+  current object tag is [region].  For example, the label "command.1.entry
+  [region]" is parsed into a clean label of "command.1.entry" plus the tag
+  "region".  On a [visual] layer, that means the object still appears as a
+  normal presentation item and also emits an annotation region using the same
+  object's world bounding box.
+
+
+  How the Layers Affect the Process
+
+  The rough pipeline is:
+
+    tagged Inkscape SVG ->
+      expanded JSON extraction ->
+        flow JSON
+          -> preview
+          -> generated Python
+          -> direct ingestion within a Python program for rendering
+
+  [visual] layers feed the presentation side of the pipeline.
+  [annotate] layers feed the semantic region side.
+  [comment] layers are kept out.
+
+  Because the roles are explicit, later tooling and LLM consumers can reason
+  about the drawing structure without needing to infer intent from layer
+  names.
+

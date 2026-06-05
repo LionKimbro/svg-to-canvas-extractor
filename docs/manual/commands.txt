@@ -1,0 +1,77 @@
+
+  == ﻿svg2canvasx Commands ==
+
+
+  extract
+
+  The extract command reads an Inkscape-authored SVG and produces the expanded
+  Stage 1 JSON format ("Expanded JSON", per the formats document).
+
+  During extraction, svg2canvasx walks the SVG tree, applies inherited
+  transforms and styles, respects tagged layer roles, skips hidden content
+  unless requested otherwise, and records both presentation items and
+  annotation objects.  This is the normal first step in the pipeline and the
+  command you use when converting authoring-time SVG data into a normalized
+  machine-readable representation.
+
+
+  flow
+
+  The flow command converts expanded extraction JSON into the more compact
+  flow JSON format.
+
+  This is the bridge from the detailed extraction stage into the structured
+  format used for downstream processing, compact previews, semantic reasoning,
+  and code generation.  It reorganizes the extracted data into layers
+  containing presentation items and semantic regions, making it easier for
+  later stages to work with the drawing at a higher level than raw SVG
+  objects.
+
+
+  preview
+
+  The preview command opens a Tkinter Canvas window and renders the extracted
+  JSON visually as a diagnostic preview.
+
+  It is intentionally dumb: it does not interpret application semantics, but
+  instead draws the raw extracted objects as faithfully as practical using
+  their world geometry, styles, text properties, and sampled path points.
+  This command is mainly for visually comparing the extracted result against
+  the original Inkscape drawing and for catching calibration problems in text
+  placement, path flattening, or layer handling.
+
+
+  rawtkinter
+
+  The rawtkinter command converts a flow JSON document into generated Python
+  source that draws onto a Tkinter Canvas.  The produced file is a
+  compiled-style artifact: instead of preserving the drawing as data, it
+  lowers it into direct Python drawing code.  This is useful when you want a
+  standalone, inspectable code representation of the flow document, or when
+  integrating the result into a Tkinter-based program that prefers code over
+  loading JSON at runtime.
+
+
+  semantics
+
+  The semantics command produces a compact JSON brief that lists the layers
+  present and the semantic annotation labels available in them.
+
+  It is designed for lightweight machine or LLM consumption, not for full
+  rendering.  Instead of returning all geometry and styling detail, it
+  summarizes the semantic surface of a document so another tool can quickly
+  understand what conceptual labels exist, such as command names, argument
+  names, applicability markers, and region annotations, without loading the
+  entire flow or expanded extraction document.
+
+
+  help-layout
+
+  The help-layout command prints the current Inkscape layout conventions
+  understood by svg2canvasx.  It documents the required bracket-tagged layer
+  roles, the object-level [region] tag, and the intended meaning of those tags
+  in the extraction pipeline.  This command is useful when setting up a new
+  SVG file, checking authoring conventions, or reminding yourself how
+  svg2canvasx expects layers and labels to be organized before extraction
+  begins.
+

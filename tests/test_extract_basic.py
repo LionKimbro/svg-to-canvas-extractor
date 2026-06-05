@@ -29,7 +29,7 @@ class ExtractTests(unittest.TestCase):
     def test_rect_without_transform(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <rect id="r1" x="10" y="20" width="30" height="40" />
             </g>
             """
@@ -41,7 +41,7 @@ class ExtractTests(unittest.TestCase):
     def test_rect_inside_translate_group(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <g id="grp" transform="translate(5,7)">
                 <rect id="r1" x="10" y="20" width="30" height="40" />
               </g>
@@ -53,7 +53,7 @@ class ExtractTests(unittest.TestCase):
     def test_rect_inside_nested_translate_groups(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <g transform="translate(5,7)">
                 <g transform="translate(2,3)">
                   <rect id="r1" x="10" y="20" width="30" height="40" />
@@ -67,7 +67,7 @@ class ExtractTests(unittest.TestCase):
     def test_rect_inside_rotate_group(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <g transform="rotate(90)">
                 <rect id="r1" x="10" y="20" width="30" height="40" />
               </g>
@@ -79,7 +79,7 @@ class ExtractTests(unittest.TestCase):
     def test_text_with_bold_tspan(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <text id="t1" x="10" y="20" font-family="Arial" font-size="12">
                 Base<tspan font-weight="bold">Bold</tspan>
               </text>
@@ -94,7 +94,7 @@ class ExtractTests(unittest.TestCase):
     def test_text_tspan_is_not_duplicated(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <text id="t1">
                 <tspan x="520" y="80" font-weight="bold">Command Interface Deck</tspan>
               </text>
@@ -108,7 +108,7 @@ class ExtractTests(unittest.TestCase):
     def test_text_with_italic_tspan(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <text id="t1" x="10" y="20">
                 A<tspan font-style="italic">B</tspan>
               </text>
@@ -121,7 +121,7 @@ class ExtractTests(unittest.TestCase):
     def test_text_with_rotate_transform(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <text id="t1" x="10" y="20" transform="rotate(-90)">Hello</text>
             </g>
             """
@@ -134,7 +134,7 @@ class ExtractTests(unittest.TestCase):
     def test_dashed_line_and_path_preserve_dasharray(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <line id="ln1" x1="0" y1="0" x2="10" y2="10" stroke-dasharray="2, 1" />
               <path id="p1" d="M 0 0 L 5 5 L 10 0" stroke-dasharray="1 1" />
             </g>
@@ -148,7 +148,7 @@ class ExtractTests(unittest.TestCase):
     def test_cubic_path_produces_sampled_points(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <path id="p1" d="M 0,0 C 10,0 10,10 20,10" />
             </g>
             """
@@ -163,7 +163,7 @@ class ExtractTests(unittest.TestCase):
     def test_quadratic_path_produces_sampled_points(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <path id="p1" d="M 0,0 Q 10,20 20,0" />
             </g>
             """
@@ -176,7 +176,7 @@ class ExtractTests(unittest.TestCase):
     def test_curve_segments_option_changes_sampling_density(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <path id="p1" d="M 0,0 C 10,0 10,10 20,10" />
             </g>
             """,
@@ -189,7 +189,7 @@ class ExtractTests(unittest.TestCase):
     def test_arc_path_reports_warning(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <path id="p1" d="M 0,0 A 10,10 0 0 1 20,0" />
             </g>
             """
@@ -200,7 +200,7 @@ class ExtractTests(unittest.TestCase):
     def test_hidden_object_skipped_by_default(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <rect id="hidden" x="1" y="1" width="2" height="3" style="display:none" />
             </g>
             """
@@ -210,7 +210,7 @@ class ExtractTests(unittest.TestCase):
     def test_hidden_object_included_with_flag(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="Layer 2">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
               <rect id="hidden" x="1" y="1" width="2" height="3" style="display:none" />
             </g>
             """,
@@ -221,13 +221,13 @@ class ExtractTests(unittest.TestCase):
     def test_annotation_layers_go_to_annotations_by_default(self):
         data = run_extract(
             """
-            <g id="layer_grid" inkscape:groupmode="layer" inkscape:label="Layer 1: grid/reference">
+            <g id="layer_grid" inkscape:groupmode="layer" inkscape:label="[comment] grid/reference">
               <rect id="grid1" x="0" y="0" width="20" height="20" />
             </g>
-            <g id="layer_draw" inkscape:groupmode="layer" inkscape:label="Layer 2: schematic objects">
+            <g id="layer_draw" inkscape:groupmode="layer" inkscape:label="[visual] schematic objects">
               <rect id="draw1" x="10" y="20" width="30" height="40" inkscape:label="button.main" />
             </g>
-            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="Layer 3: annotations">
+            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="[annotate] semantic regions">
               <rect id="anno1" x="50" y="60" width="70" height="80" inkscape:label="region.command_entries" />
             </g>
             """
@@ -238,12 +238,12 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(data["annotations"][0]["annotation"]["name"], "command_entries")
         self.assertEqual(data["annotations"][0]["annotation"]["raw_label"], "region.command_entries")
         self.assertEqual(data["annotations"][0]["inkscape_label"], "region.command_entries")
-        self.assertEqual([layer["role"] for layer in data["layers"]], ["reference", "drawable", "annotation"])
+        self.assertEqual([layer["role"] for layer in data["layers"]], ["comment", "presentation", "annotation"])
 
     def test_annotation_without_region_label_is_unknown(self):
         data = run_extract(
             """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="annotations">
+            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[annotate] annotations">
               <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="helper.box" />
             </g>
             """
@@ -256,10 +256,10 @@ class ExtractTests(unittest.TestCase):
     def test_reference_layers_are_skipped_by_default(self):
         data = run_extract(
             """
-            <g id="layer_ref" inkscape:groupmode="layer" inkscape:label="grid/reference">
+            <g id="layer_ref" inkscape:groupmode="layer" inkscape:label="[comment] grid/reference">
               <rect id="grid1" x="0" y="0" width="20" height="20" />
             </g>
-            <g id="layer_draw" inkscape:groupmode="layer" inkscape:label="schematic">
+            <g id="layer_draw" inkscape:groupmode="layer" inkscape:label="[visual] schematic">
               <rect id="draw1" x="10" y="20" width="30" height="40" />
             </g>
             """
@@ -267,21 +267,10 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual([item["svg_id"] for item in data["objects"]], ["draw1"])
         self.assertEqual(data["annotations"], [])
 
-    def test_include_reference_layers_puts_reference_objects_in_objects(self):
-        data = run_extract(
-            """
-            <g id="layer_ref" inkscape:groupmode="layer" inkscape:label="grid/reference">
-              <rect id="grid1" x="0" y="0" width="20" height="20" />
-            </g>
-            """,
-            flags={"include_reference_layers": True},
-        )
-        self.assertEqual([item["svg_id"] for item in data["objects"]], ["grid1"])
-
     def test_annotations_as_objects_routes_annotation_layer_into_objects(self):
         data = run_extract(
             """
-            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="annotations">
+            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="[annotate] annotations">
               <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="region.demo" />
             </g>
             """,
@@ -294,7 +283,7 @@ class ExtractTests(unittest.TestCase):
     def test_no_annotations_skips_annotation_layer_objects(self):
         data = run_extract(
             """
-            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="annotations">
+            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="[annotate] annotations">
               <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="region.demo" />
             </g>
             """,
@@ -302,3 +291,29 @@ class ExtractTests(unittest.TestCase):
         )
         self.assertEqual(data["objects"], [])
         self.assertEqual(data["annotations"], [])
+
+    def test_visual_region_tag_creates_annotation_region(self):
+        data = run_extract(
+            """
+            <g id="layer_draw" inkscape:groupmode="layer" inkscape:label="[visual] schematic objects">
+              <rect id="draw1" x="10" y="20" width="30" height="40" inkscape:label="command.1.entry [region]" />
+            </g>
+            """
+        )
+        self.assertEqual([item["svg_id"] for item in data["objects"]], ["draw1"])
+        self.assertEqual(data["objects"][0]["label"], "command.1.entry")
+        self.assertEqual(data["objects"][0]["tags"], ["region"])
+        self.assertEqual(len(data["annotations"]), 1)
+        self.assertEqual(data["annotations"][0]["annotation"]["name"], "command.1.entry")
+        self.assertEqual(data["annotations"][0]["annotation"]["source"], "visual-item")
+        self.assertEqual(data["annotations"][0]["world"]["bbox"], [10.0, 20.0, 40.0, 60.0])
+
+    def test_unknown_layer_role_raises(self):
+        with self.assertRaises(ValueError):
+            run_extract(
+                """
+                <g id="layer_unknown" inkscape:groupmode="layer" inkscape:label="schematic objects">
+                  <rect id="draw1" x="10" y="20" width="30" height="40" />
+                </g>
+                """
+            )

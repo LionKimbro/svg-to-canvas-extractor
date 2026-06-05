@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import xml.etree.ElementTree as ET
 
 from .styles import parse_number
@@ -6,6 +7,7 @@ from .styles import parse_number
 
 kSVG_NS = "http://www.w3.org/2000/svg"
 kINKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape"
+kBRACKET_TAG_RE = re.compile(r"\[([^\]]+)\]")
 
 
 def load_svg(path):
@@ -56,11 +58,19 @@ def is_layer(node):
     return node.get("{" + kINKSCAPE_NS + "}groupmode") == "layer"
 
 
-def get_layer_info(node):
+def get_layer_info(node, warnings=None):
+    label = get_inkscape_label(node)
+    label_info = parse_label_metadata(label)
+    role = classify_layer_role(label)
+    if role is None:
+        message = "unrecognized layer role tag: " + str(label or get_node_id(node) or "(unnamed layer)")
+        raise ValueError(message)
     return {
         "id": get_node_id(node),
-        "label": get_inkscape_label(node),
-        "role": classify_layer_role(get_node_id(node), get_inkscape_label(node)),
+        "label": label_info["clean_label"],
+        "inkscape_label": label,
+        "tags": label_info["tags"],
+        "role": role,
     }
 
 
@@ -68,13 +78,33 @@ def normalize_source_path(path):
     return str(Path(path))
 
 
-def classify_layer_role(layer_id, layer_label):
-    text = " ".join(filter(None, [layer_id, layer_label])).lower()
-    if "annotation" in text:
-        return "annotation"
-    if "grid" in text or "reference" in text:
-        return "reference"
-    return "drawable"
+def classify_layer_role(layer_label):
+    label_info = parse_label_metadata(layer_label)
+    for tag in label_info["tags"]:
+        if tag == "comment":
+            return "comment"
+        if tag == "visual":
+            return "presentation"
+        if tag == "annotate":
+            return "annotation"
+    return None
+
+
+def parse_label_metadata(text):
+    raw = text
+    tags = []
+    if text:
+        for match in kBRACKET_TAG_RE.findall(text):
+            for part in re.split(r"[\s,]+", match.strip()):
+                if part:
+                    tags.append(part.lower())
+    clean = kBRACKET_TAG_RE.sub("", text or "")
+    clean = re.sub(r"\s+", " ", clean).strip()
+    return {
+        "raw_label": raw,
+        "clean_label": clean if clean else None,
+        "tags": tags,
+    }
 
 
 def _parse_length(text, warnings):

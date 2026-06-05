@@ -101,14 +101,14 @@ class FlowTests(unittest.TestCase):
             "source": {"path": "example.svg"},
             "svg": {"width": 100.0, "height": 80.0, "viewBox": [0.0, 0.0, 100.0, 80.0]},
             "layers": [
-                {"id": "layer2", "label": "Layer 2: schematic objects", "role": "drawable"},
-                {"id": "layer3", "label": "Layer 3: annotations", "role": "annotation"},
+                {"id": "layer2", "label": "schematic objects", "role": "presentation"},
+                {"id": "layer3", "label": "semantic regions", "role": "annotation"},
             ],
             "objects": [
                 {
                     "svg_id": "r1",
                     "kind": "rect",
-                    "layer": {"id": "layer2", "label": "Layer 2: schematic objects", "role": "drawable"},
+                    "layer": {"id": "layer2", "label": "schematic objects", "role": "presentation"},
                     "inkscape_label": "main.rect",
                     "style": {"fill": "none", "stroke": "#000000", "stroke_width": 2.0, "stroke_dasharray_values": [2.0, 1.0]},
                     "world": {"bbox": [10.0, 20.0, 40.0, 60.0], "points": [[10.0, 20.0], [40.0, 20.0], [40.0, 60.0], [10.0, 60.0]], "matrix": [1, 0, 0, 1, 0, 0]},
@@ -116,7 +116,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "t1",
                     "kind": "text",
-                    "layer": {"id": "layer2", "label": "Layer 2: schematic objects", "role": "drawable"},
+                    "layer": {"id": "layer2", "label": "schematic objects", "role": "presentation"},
                     "label": "title.text",
                     "text": "Hello",
                     "style": {"font_family": "Arial", "font_size": 18.0, "font_weight": "700", "font_style": "italic", "fill": "#222222"},
@@ -128,7 +128,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "a1",
                     "kind": "rect",
-                    "layer": {"id": "layer3", "label": "Layer 3: annotations", "role": "annotation"},
+                    "layer": {"id": "layer3", "label": "semantic regions", "role": "annotation"},
                     "inkscape_label": "region.main_panel",
                     "annotation": {"kind": "region", "name": "main_panel", "raw_label": "region.main_panel"},
                     "style": {"stroke": "#00ffff"},
@@ -155,7 +155,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "r1",
                     "kind": "rect",
-                    "layer": {"id": "layer2", "label": "Presentation", "role": "drawable"},
+                    "layer": {"id": "layer2", "label": "Presentation", "role": "presentation"},
                     "inkscape_label": "box.main",
                     "style": {"fill": "none", "stroke": "#111111", "stroke_width": 2.0, "stroke_dasharray_values": [4.0, 2.0]},
                     "world": {"bbox": [0.0, 0.0, 10.0, 20.0], "points": [[0.0, 0.0], [10.0, 0.0], [10.0, 20.0], [0.0, 20.0]], "matrix": [1, 0, 0, 1, 0, 0]},
@@ -181,7 +181,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "t1",
                     "kind": "text",
-                    "layer": {"id": "layer2", "label": "Presentation", "role": "drawable"},
+                    "layer": {"id": "layer2", "label": "Presentation", "role": "presentation"},
                     "label": "title",
                     "text": "Hello",
                     "style": {"font_family": "Arial", "font_size": 14.0, "font_weight": "bold", "font_style": "oblique", "fill": "#333333"},
@@ -226,6 +226,7 @@ class FlowTests(unittest.TestCase):
             "name": "command_entries",
             "shape": "rect",
             "bbox": [1.0, 2.0, 30.0, 40.0],
+            "source": None,
         })
 
     def test_annotation_styles_are_omitted_and_item_layer_field_is_omitted(self):
@@ -237,7 +238,7 @@ class FlowTests(unittest.TestCase):
                 {
                     "svg_id": "r1",
                     "kind": "rect",
-                    "layer": {"id": "layer2", "label": "Presentation", "role": "drawable"},
+                    "layer": {"id": "layer2", "label": "Presentation", "role": "presentation"},
                     "style": {"fill": "#fff"},
                     "world": {"bbox": [0.0, 0.0, 1.0, 1.0], "points": [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]], "matrix": [1, 0, 0, 1, 0, 0]},
                 }
@@ -260,6 +261,41 @@ class FlowTests(unittest.TestCase):
         self.assertNotIn("style", region)
         self.assertEqual(region["shape"], "bbox")
         self.assertIsNone(region["name"])
+
+    def test_visual_region_annotation_stays_with_presentation_layer_and_adds_region(self):
+        extracted = {
+            "source": {"path": "example.svg"},
+            "svg": {},
+            "layers": [
+                {"id": "layer2", "label": "Presentation", "role": "presentation"},
+            ],
+            "objects": [
+                {
+                    "svg_id": "r1",
+                    "kind": "rect",
+                    "layer": {"id": "layer2", "label": "Presentation", "role": "presentation"},
+                    "label": "command.1.entry",
+                    "inkscape_label": "command.1.entry [region]",
+                    "tags": ["region"],
+                    "style": {"fill": "none", "stroke": "#111111", "stroke_width": 2.0},
+                    "world": {"bbox": [0.0, 0.0, 10.0, 20.0], "points": [[0.0, 0.0], [10.0, 0.0], [10.0, 20.0], [0.0, 20.0]], "matrix": [1, 0, 0, 1, 0, 0]},
+                }
+            ],
+            "annotations": [
+                {
+                    "svg_id": "r1",
+                    "kind": "rect",
+                    "layer": {"id": "layer2", "label": "Presentation", "role": "presentation"},
+                    "label": "command.1.entry",
+                    "annotation": {"kind": "region", "name": "command.1.entry", "raw_label": "command.1.entry", "source": "visual-item"},
+                    "world": {"bbox": [0.0, 0.0, 10.0, 20.0]},
+                }
+            ],
+        }
+        flow = convert_extracted_data_to_flow(extracted)
+        self.assertEqual(flow["layers"][0]["role"], "presentation")
+        self.assertEqual(flow["layers"][0]["regions"][0]["name"], "command.1.entry")
+        self.assertEqual(flow["layers"][0]["regions"][0]["source"], "visual-item")
 
     def test_flow_preview_conversion_supports_flow_documents(self):
         flow = sample_flow()
