@@ -37,6 +37,8 @@ class ExtractTests(unittest.TestCase):
         obj = data["objects"][0]
         self.assertEqual(obj["kind"], "rect")
         self.assertEqual(obj["layer"], "layer2")
+        self.assertEqual(data["layers"][0]["uid"], "layer2")
+        self.assertEqual(data["layers"][0]["svg_id"], "layer2")
         self.assertEqual(obj["world"]["bbox"], [10.0, 20.0, 40.0, 60.0])
 
     def test_rect_inside_translate_group(self):

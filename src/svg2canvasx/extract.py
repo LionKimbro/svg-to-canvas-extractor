@@ -43,6 +43,8 @@ def extract_svg_file(
         "annotations": [],
         "layers": [],
         "uid_counter": 0,
+        "layer_uid_counter": 0,
+        "layer_uid_by_node": {},
         "debug": debug,
         "curve_segments": curve_segments,
     }
@@ -91,7 +93,7 @@ def walk_node(node, state, parent_matrix, parent_style, layer_info, groups):
 
     if name == "g":
         if is_layer(node):
-            current_layer = get_layer_info(node, state["warnings"])
+            current_layer = _register_layer_info(node, get_layer_info(node, state["warnings"]), state)
             if not _layer_is_walkable(current_layer, state):
                 return
         else:
@@ -300,8 +302,23 @@ def _discover_layers(root, state):
     layers = []
     for child in list(root):
         if local_name(child.tag) == "g" and is_layer(child):
-            layers.append(get_layer_info(child, state["warnings"]))
+            layers.append(_register_layer_info(child, get_layer_info(child, state["warnings"]), state))
     return layers
+
+
+def _register_layer_info(node, layer_info, state):
+    node_key = id(node)
+    layer_uid = state["layer_uid_by_node"].get(node_key)
+    if layer_uid is None:
+        layer_uid = layer_info.get("id")
+        if not layer_uid:
+            state["layer_uid_counter"] += 1
+            layer_uid = "auto_layer_{:05d}".format(state["layer_uid_counter"])
+        state["layer_uid_by_node"][node_key] = layer_uid
+    output = dict(layer_info)
+    output["uid"] = layer_uid
+    output["svg_id"] = layer_info.get("id")
+    return output
 
 def _layer_is_walkable(layer_info, state):
     role = (layer_info or {}).get("role")
@@ -400,7 +417,8 @@ def _copy_layer(layer_info):
     if layer_info is None:
         return None
     output = {
-        "id": layer_info.get("id"),
+        "uid": layer_info.get("uid"),
+        "svg_id": layer_info.get("svg_id"),
         "label": layer_info.get("label"),
         "role": layer_info.get("role"),
     }
@@ -414,7 +432,7 @@ def _copy_layer(layer_info):
 def _layer_id(layer_info):
     if layer_info is None:
         return None
-    return layer_info.get("id")
+    return layer_info.get("uid")
 
 
 def _copy_group(group_info):

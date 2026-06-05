@@ -149,7 +149,7 @@ def generate_rawtkinter_source(flow_data):
 
 def _make_flow_layer(layer, role):
     output = {
-        "name": layer.get("label") or layer.get("id") or "Unnamed Layer",
+        "name": layer.get("label") or layer.get("uid") or layer.get("svg_id") or layer.get("id") or "Unnamed Layer",
         "role": role,
         "regions": [],
     }
@@ -159,15 +159,15 @@ def _make_flow_layer(layer, role):
 
 
 def _layer_key(layer):
-    return (layer.get("id"), layer.get("label"), layer.get("role"))
+    return (layer.get("uid"), layer.get("svg_id"), layer.get("id"), layer.get("label"), layer.get("role"))
 
 
 def _index_extracted_layers(data):
     output = {}
     for layer in data.get("layers", []):
-        layer_id = layer.get("id")
-        if layer_id is not None:
-            output[layer_id] = layer
+        for key in (layer.get("uid"), layer.get("svg_id"), layer.get("id")):
+            if key is not None:
+                output[key] = layer
     return output
 
 
@@ -177,7 +177,7 @@ def _resolve_extracted_layer(data, layer_index, layer_ref):
     if layer_ref is not None and layer_ref in layer_index:
         return layer_index[layer_ref]
     if layer_ref is not None:
-        return {"id": layer_ref}
+        return {"uid": layer_ref}
     return {}
 
 

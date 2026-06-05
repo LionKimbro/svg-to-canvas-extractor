@@ -101,15 +101,15 @@ def _build_semantics_brief(layers, names_by_layer, regions_by_layer):
 
 
 def _layer_name(layer):
-    return layer.get("label") or layer.get("name") or layer.get("id") or "Unnamed Layer"
+    return layer.get("label") or layer.get("name") or layer.get("uid") or layer.get("svg_id") or layer.get("id") or "Unnamed Layer"
 
 
 def _index_layers(layers):
     output = {}
     for layer in layers:
-        layer_id = layer.get("id")
-        if layer_id is not None:
-            output[layer_id] = layer
+        for key in (layer.get("uid"), layer.get("svg_id"), layer.get("id")):
+            if key is not None:
+                output[key] = layer
     return output
 
 
@@ -119,7 +119,7 @@ def _resolve_layer(layer_index, layer_ref):
     if layer_ref is not None and layer_ref in layer_index:
         return layer_index[layer_ref]
     if layer_ref is not None:
-        return {"id": layer_ref}
+        return {"uid": layer_ref}
     return {}
 
 
