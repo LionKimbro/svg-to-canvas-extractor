@@ -52,14 +52,8 @@ def build_parser():
     extract_parser = subparsers.add_parser("extract")
     extract_parser.add_argument("input_svg")
     extract_parser.add_argument("-o", "--output", required=True)
-    extract_parser.add_argument("--layer", action="append", dest="layers")
-    extract_parser.add_argument("--all-layers", action="store_true")
-    extract_parser.add_argument("--annotations-as-objects", action="store_true")
-    extract_parser.add_argument("--no-annotations", action="store_true")
     extract_parser.add_argument("--pretty", action="store_true")
     extract_parser.add_argument("--debug", action="store_true")
-    extract_parser.add_argument("--include-hidden", action="store_true")
-    extract_parser.add_argument("--no-world-geometry", action="store_true")
     extract_parser.add_argument("--curve-segments", type=int, default=16)
 
     preview_parser = subparsers.add_parser("preview")
@@ -100,12 +94,6 @@ def main(argv=None):
     if args.command == "extract":
         data = extract_svg_file(
             args.input_svg,
-            layer_names=args.layers,
-            extract_all_layers=args.all_layers,
-            annotations_as_objects=args.annotations_as_objects,
-            no_annotations=args.no_annotations,
-            include_hidden=args.include_hidden,
-            include_world_geometry=not args.no_world_geometry,
             debug=args.debug,
             curve_segments=args.curve_segments,
         )

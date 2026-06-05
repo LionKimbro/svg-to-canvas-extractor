@@ -27,7 +27,7 @@ class StyleTests(unittest.TestCase):
         self.assertIsNone(parse_dasharray("none"))
 
     def test_hidden_styles_are_skipped(self):
-        self.assertFalse(is_visible({"display": "none"}, False))
-        self.assertFalse(is_visible({"visibility": "hidden"}, False))
-        self.assertFalse(is_visible({"opacity": "0"}, False))
-        self.assertTrue(is_visible({"display": "none"}, True))
+        self.assertFalse(is_visible({"display": "none"}))
+        self.assertFalse(is_visible({"visibility": "hidden"}))
+        self.assertFalse(is_visible({"opacity": "0"}))
+        self.assertTrue(is_visible({"stroke": "#000000"}))

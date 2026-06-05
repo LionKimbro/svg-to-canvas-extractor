@@ -31,12 +31,6 @@ from .transforms import parse_transform_list
 
 def extract_svg_file(
     path,
-    layer_names=None,
-    extract_all_layers=False,
-    annotations_as_objects=False,
-    no_annotations=False,
-    include_hidden=False,
-    include_world_geometry=True,
     debug=False,
     curve_segments=16,
 ):
@@ -49,18 +43,11 @@ def extract_svg_file(
         "annotations": [],
         "layers": [],
         "uid_counter": 0,
-        "selected_layers": [],
-        "include_hidden": include_hidden,
-        "include_world_geometry": include_world_geometry,
         "debug": debug,
         "curve_segments": curve_segments,
-        "annotations_as_objects": annotations_as_objects,
-        "no_annotations": no_annotations,
     }
 
     layers = _discover_layers(root, state)
-    selected = _choose_layers(layers, layer_names, extract_all_layers)
-    state["selected_layers"] = selected
     state["layers"] = [_copy_layer(layer) for layer in layers]
 
     walk_node(
@@ -89,7 +76,7 @@ def extract_svg_file(
 def walk_node(node, state, parent_matrix, parent_style, layer_info, groups):
     name = local_name(node.tag)
     style = build_style(node, parent_style, state["warnings"])
-    if not is_visible(style, state["include_hidden"]):
+    if not is_visible(style):
         return
 
     local_matrix = parse_transform_list(node.get("transform"), state["warnings"])
@@ -107,15 +94,13 @@ def walk_node(node, state, parent_matrix, parent_style, layer_info, groups):
             current_layer = get_layer_info(node, state["warnings"])
             if not _layer_is_walkable(current_layer, state):
                 return
-            if _should_skip_layer(current_layer, state["selected_layers"]):
-                return
         else:
             current_groups = current_groups + [_group_info(node)]
         for child in list(node):
             walk_node(child, state, world_matrix, style, current_layer, current_groups)
         return
 
-    if current_layer is None and state["selected_layers"]:
+    if current_layer is None:
         return
 
     if name == "rect":
@@ -169,12 +154,11 @@ def extract_rect(node, layer_info, groups, style, world_matrix, state):
         "ry": ry_value,
         "bbox": local_bbox,
     }
-    if state["include_world_geometry"]:
-        obj["world"] = {
-            "matrix": _clean_matrix(world_matrix),
-            "points": world_points,
-            "bbox": world_bbox,
-        }
+    obj["world"] = {
+        "matrix": _clean_matrix(world_matrix),
+        "points": world_points,
+        "bbox": world_bbox,
+    }
     return obj
 
 
@@ -191,12 +175,11 @@ def extract_line(node, layer_info, groups, style, world_matrix, state):
         "x2": x2_value,
         "y2": y2_value,
     }
-    if state["include_world_geometry"]:
-        obj["world"] = {
-            "matrix": _clean_matrix(world_matrix),
-            "points": world_points,
-            "bbox": bbox_from_points(world_points),
-        }
+    obj["world"] = {
+        "matrix": _clean_matrix(world_matrix),
+        "points": world_points,
+        "bbox": bbox_from_points(world_points),
+    }
     return obj
 
 
@@ -209,12 +192,11 @@ def extract_poly(node, layer_info, groups, style, world_matrix, state, name):
         "points": local_points,
         "bbox": bbox_from_points(local_points),
     }
-    if state["include_world_geometry"]:
-        obj["world"] = {
-            "matrix": _clean_matrix(world_matrix),
-            "points": world_points,
-            "bbox": bbox_from_points(world_points),
-        }
+    obj["world"] = {
+        "matrix": _clean_matrix(world_matrix),
+        "points": world_points,
+        "bbox": bbox_from_points(world_points),
+    }
     return obj
 
 
@@ -231,15 +213,14 @@ def extract_path(node, layer_info, groups, style, world_matrix, state):
     if local_points:
         obj["local"]["points"] = local_points
         obj["local"]["bbox"] = bbox_from_points(local_points)
-    if state["include_world_geometry"]:
-        world = {
-            "matrix": _clean_matrix(world_matrix),
-        }
-        if local_points:
-            world_points = transform_points(world_matrix, local_points)
-            world["points"] = world_points
-            world["bbox"] = bbox_from_points(world_points)
-        obj["world"] = world
+    world = {
+        "matrix": _clean_matrix(world_matrix),
+    }
+    if local_points:
+        world_points = transform_points(world_matrix, local_points)
+        world["points"] = world_points
+        world["bbox"] = bbox_from_points(world_points)
+    obj["world"] = world
     return obj
 
 
@@ -266,12 +247,11 @@ def extract_text(node, layer_info, groups, style, world_matrix, state):
         "x": x_value,
         "y": y_value,
     }
-    if state["include_world_geometry"]:
-        obj["world"] = {
-            "matrix": _clean_matrix(world_matrix),
-            "anchor_point": clean_point(anchor_point),
-            "angle_degrees": clean_number(extract_rotation_angle(world_matrix)),
-        }
+    obj["world"] = {
+        "matrix": _clean_matrix(world_matrix),
+        "anchor_point": clean_point(anchor_point),
+        "angle_degrees": clean_number(extract_rotation_angle(world_matrix)),
+    }
     obj["text_layout"] = {
         "svg_text_anchor": anchor_name,
         "svg_dominant_baseline": style.get("dominant-baseline"),
@@ -307,13 +287,12 @@ def extract_ellipse_like(node, layer_info, groups, style, world_matrix, state, n
     world_points = transform_points(world_matrix, local_points)
     obj = _base_object(node, name, layer_info, groups, style, world_matrix, state)
     obj["local"] = local
-    if state["include_world_geometry"]:
-        obj["world"] = {
-            "matrix": _clean_matrix(world_matrix),
-            "center": clean_point(apply_matrix(world_matrix, [cx_value, cy_value])),
-            "bbox": bbox_from_points(world_points),
-            "points": world_points,
-        }
+    obj["world"] = {
+        "matrix": _clean_matrix(world_matrix),
+        "center": clean_point(apply_matrix(world_matrix, [cx_value, cy_value])),
+        "bbox": bbox_from_points(world_points),
+        "points": world_points,
+    }
     return obj
 
 
@@ -323,40 +302,6 @@ def _discover_layers(root, state):
         if local_name(child.tag) == "g" and is_layer(child):
             layers.append(get_layer_info(child, state["warnings"]))
     return layers
-
-
-def _choose_layers(layers, layer_names, extract_all_layers):
-    if extract_all_layers:
-        return layers
-    if layer_names:
-        wanted = set(layer_names)
-        return [
-            layer
-            for layer in layers
-            if layer.get("id") in wanted or layer.get("label") in wanted
-        ]
-    return [
-        layer
-        for layer in layers
-        if _should_include_layer_by_default(layer)
-    ]
-
-
-def _should_include_layer_by_default(layer_info):
-    role = layer_info.get("role")
-    if role in ("presentation", "annotation"):
-        return True
-    return False
-
-
-def _should_skip_layer(layer_info, selected_layers):
-    if not selected_layers:
-        return False
-    for item in selected_layers:
-        if item.get("id") == layer_info.get("id") and item.get("label") == layer_info.get("label"):
-            return False
-    return True
-
 
 def _layer_is_walkable(layer_info, state):
     role = (layer_info or {}).get("role")
@@ -477,18 +422,11 @@ def _push_object(state, obj):
     if obj is not None:
         role = ((obj.get("layer") or {}).get("role")) or "presentation"
         if role == "annotation":
-            if state.get("no_annotations"):
-                return
             obj["annotation"] = _build_annotation_info(obj)
-            if state.get("annotations_as_objects"):
-                state["objects"].append(obj)
-            else:
-                state["annotations"].append(obj)
+            state["annotations"].append(obj)
             return
         state["objects"].append(obj)
         if role == "presentation" and "region" in (obj.get("tags") or []):
-            if state.get("no_annotations"):
-                return
             state["annotations"].append(_build_visual_region_annotation(obj))
 
 

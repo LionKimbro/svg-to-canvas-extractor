@@ -58,9 +58,7 @@ def style_to_output(style):
     return output
 
 
-def is_visible(style, include_hidden):
-    if include_hidden:
-        return True
+def is_visible(style):
     if style.get("display") == "none":
         return False
     if style.get("visibility") == "hidden":
@@ -115,4 +113,3 @@ def _parse_style_attribute(text):
             continue
         style[key] = value
     return style
-

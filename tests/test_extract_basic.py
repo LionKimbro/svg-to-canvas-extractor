@@ -207,17 +207,6 @@ class ExtractTests(unittest.TestCase):
         )
         self.assertEqual(data["objects"], [])
 
-    def test_hidden_object_included_with_flag(self):
-        data = run_extract(
-            """
-            <g id="layer2" inkscape:groupmode="layer" inkscape:label="[visual] Layer 2">
-              <rect id="hidden" x="1" y="1" width="2" height="3" style="display:none" />
-            </g>
-            """,
-            flags={"include_hidden": True},
-        )
-        self.assertEqual(len(data["objects"]), 1)
-
     def test_annotation_layers_go_to_annotations_by_default(self):
         data = run_extract(
             """
@@ -265,31 +254,6 @@ class ExtractTests(unittest.TestCase):
             """
         )
         self.assertEqual([item["svg_id"] for item in data["objects"]], ["draw1"])
-        self.assertEqual(data["annotations"], [])
-
-    def test_annotations_as_objects_routes_annotation_layer_into_objects(self):
-        data = run_extract(
-            """
-            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="[annotate] annotations">
-              <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="region.demo" />
-            </g>
-            """,
-            flags={"annotations_as_objects": True},
-        )
-        self.assertEqual([item["svg_id"] for item in data["objects"]], ["anno1"])
-        self.assertEqual(data["annotations"], [])
-        self.assertEqual(data["objects"][0]["annotation"]["name"], "demo")
-
-    def test_no_annotations_skips_annotation_layer_objects(self):
-        data = run_extract(
-            """
-            <g id="layer_anno" inkscape:groupmode="layer" inkscape:label="[annotate] annotations">
-              <rect id="anno1" x="1" y="2" width="3" height="4" inkscape:label="region.demo" />
-            </g>
-            """,
-            flags={"no_annotations": True},
-        )
-        self.assertEqual(data["objects"], [])
         self.assertEqual(data["annotations"], [])
 
     def test_visual_region_tag_creates_annotation_region(self):

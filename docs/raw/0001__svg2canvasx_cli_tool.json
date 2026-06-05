@@ -40,8 +40,7 @@
       "usage": [
         "svg2canvasx extract input.svg -o output.json",
         "svg2canvasx extract input.svg -o output.json --pretty",
-        "svg2canvasx extract input.svg -o output.json --curve-segments 16",
-        "svg2canvasx extract input.svg -o output.json --layer \"Layer 2: schematic objects\""
+        "svg2canvasx extract input.svg -o output.json --curve-segments 16"
       ],
       "arguments": {
         "input_svg": {
@@ -54,28 +53,6 @@
           "required": true,
           "description": "Path to the JSON file to write."
         },
-        "layer": {
-          "type": "string",
-          "required": false,
-          "repeatable": true,
-          "description": "Select one or more layer names or IDs."
-        },
-        "all-layers": {
-          "type": "flag",
-          "required": false,
-          "description": "Extract all visible layers rather than applying default layer selection."
-        },
-        "annotations-as-objects": {
-          "type": "flag",
-          "required": false,
-          "description": "Keep annotation layer objects in the main `objects` list rather than separate annotation handling."
-        },
-        "no-annotations": {
-          "type": "flag",
-          "required": false,
-          "description": "Suppress extraction of annotations."
-        }
-        ,
         "pretty": {
           "type": "flag",
           "required": false,
@@ -86,16 +63,6 @@
           "required": false,
           "description": "Enable additional debug-oriented behavior where supported."
         },
-        "include-hidden": {
-          "type": "flag",
-          "required": false,
-          "description": "Include hidden SVG elements that would normally be skipped."
-        },
-        "no-world-geometry": {
-          "type": "flag",
-          "required": false,
-          "description": "Do not compute world geometry fields."
-        },
         "curve-segments": {
           "type": "integer",
           "required": false,
@@ -105,7 +72,8 @@
       },
       "outputs": [
         "Normalized Stage 1 JSON containing `source`, `svg`, `layers`, `objects`, and `warnings`.",
-        "Sampled path points for supported curved path commands when possible."
+        "Sampled path points for supported curved path commands when possible.",
+        "World geometry is always included for extracted objects."
       ]
     },
     "preview": {
