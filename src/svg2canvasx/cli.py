@@ -17,18 +17,18 @@ It uses explicit bracket tags in Inkscape layer labels and object labels during 
 
 Layer tags:
   [comment]   ignored/skipped by default
-  [visual]    extracted as presentation items
-  [annotate]  extracted as annotation regions
+  [presentation] extracted as presentation items
+  [annotation]  extracted as annotation regions
 
 Object tags:
   [region]    object is rendered normally and also creates an annotation region from its bbox
 
 Example layer setup:
   [comment] grid/reference
-  [visual] schematic objects
-  [annotate] semantic regions
+  [presentation] schematic objects
+  [annotation] semantic regions
 
-Example object label on visual layer:
+Example object label on presentation layer:
   command.1.entry [region]
 
 Meaning:

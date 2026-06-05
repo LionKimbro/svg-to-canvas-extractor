@@ -7,7 +7,7 @@
   This is the authoring format and the normal human-edited source for the
   project.  The SVG is expected to come from Inkscape and to follow
   svg2canvasx's layer and labeling conventions, especially explicit
-  bracket-tagged layer roles such as [visual], [annotate], and [comment].  At
+  bracket-tagged layer roles such as [presentation], [annotation], and [comment].  At
   this stage the file still contains full SVG structure, local coordinates,
   transforms, group nesting, presentation styles, text spans, and authoring
   metadata.  svg2canvasx does not treat this as the final runtime format; it

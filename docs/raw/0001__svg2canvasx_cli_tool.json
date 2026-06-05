@@ -219,7 +219,7 @@
       "Curved cubic and quadratic paths are sampled into point lists rather than preserved as true parametric curves."
     ],
     "inkscape-orientation": [
-      "Layer role selection depends on explicit bracket tags such as `[comment]`, `[visual]`, and `[annotate]`.",
+      "Layer role selection depends on explicit bracket tags such as `[comment]`, `[presentation]`, and `[annotation]`.",
       "Annotation layer handling is convention-based and uses labels rather than full SVG semantics.",
       "The CLI is intentionally shaped around the repository's Inkscape drafting workflow."
     ]

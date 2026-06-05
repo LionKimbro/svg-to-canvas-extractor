@@ -17,19 +17,19 @@
   skipped.
 
 
-    [visual]
+    [presentation]
 
-  A [visual] layer is treated as presentation geometry.  Objects on this layer
+  A [presentation] layer is treated as presentation geometry.  Objects on this layer
   become the drawable items that appear in the expanded extraction JSON, the
   preview window, and the later flow conversion.  Rectangles, lines, paths,
-  text, circles, and other supported SVG elements on a [visual] layer are
+  text, circles, and other supported SVG elements on a [presentation] layer are
   extracted as presentation items with geometry, style, world transforms, and
   labels preserved.
 
 
-    [annotate]
+    [annotation]
     
-  An [annotate] layer is treated as semantic markup.  Objects on this layer
+  An [annotation] layer is treated as semantic markup.  Objects on this layer
   are not primarily for visual presentation; instead, they become annotation
   entries.  These annotations are later used to build compact semantic briefs
   and flow-layer regions.  Labels on annotation objects carry most of the
@@ -47,7 +47,7 @@
   Objects can also use bracket tags in their Inkscape labels.  The important
   current object tag is [region].  For example, the label "command.1.entry
   [region]" is parsed into a clean label of "command.1.entry" plus the tag
-  "region".  On a [visual] layer, that means the object still appears as a
+  "region".  On a [presentation] layer, that means the object still appears as a
   normal presentation item and also emits an annotation region using the same
   object's world bounding box.
 
@@ -63,8 +63,8 @@
           -> generated Python
           -> direct ingestion within a Python program for rendering
 
-  [visual] layers feed the presentation side of the pipeline.
-  [annotate] layers feed the semantic region side.
+  [presentation] layers feed the presentation side of the pipeline.
+  [annotation] layers feed the semantic region side.
   [comment] layers are kept out.
 
   Because the roles are explicit, later tooling and LLM consumers can reason

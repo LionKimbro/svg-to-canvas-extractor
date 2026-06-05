@@ -83,9 +83,9 @@ def classify_layer_role(layer_label):
     for tag in label_info["tags"]:
         if tag == "comment":
             return "comment"
-        if tag == "visual":
+        if tag == "presentation":
             return "presentation"
-        if tag == "annotate":
+        if tag == "annotation":
             return "annotation"
     return None
 
