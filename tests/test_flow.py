@@ -359,7 +359,30 @@ class FlowTests(unittest.TestCase):
             "shape": "rect",
             "bbox": [1.0, 2.0, 30.0, 40.0],
             "source": None,
+            "tags": ["source:a1"],
         })
+
+    def test_annotation_region_label_tags_are_split_into_clean_label_and_tags(self):
+        extracted = {
+            "source": {"path": "example.svg"},
+            "svg": {},
+            "layers": [],
+            "objects": [],
+            "annotations": [
+                {
+                    "svg_id": "a2",
+                    "kind": "rect",
+                    "layer": {"uid": "layer3", "label": "Annotations", "role": "annotation"},
+                    "inkscape_label": "command.1.entry [region] [selected]",
+                    "annotation": {"kind": "region", "name": "command.1.entry", "raw_label": "command.1.entry"},
+                    "world": {"bbox": [2.0, 3.0, 10.0, 12.0]},
+                }
+            ],
+        }
+        region = convert_extracted_data_to_flow(extracted)["layers"][0]["regions"][0]
+        self.assertEqual(region["label"], "command.1.entry")
+        self.assertEqual(region["name"], "command.1.entry")
+        self.assertEqual(region["tags"], ["source:a2", "region", "selected"])
 
     def test_annotation_styles_are_omitted_and_item_layer_field_is_omitted(self):
         extracted = {

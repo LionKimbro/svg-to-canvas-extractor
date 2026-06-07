@@ -92,6 +92,15 @@ def classify_layer_role(layer_label):
 
 def parse_label_metadata(text):
     raw = text
+    clean, tags = split_label_tags(text)
+    return {
+        "raw_label": raw,
+        "clean_label": clean if clean else None,
+        "tags": tags,
+    }
+
+
+def split_label_tags(text):
     tags = []
     if text:
         for match in kBRACKET_TAG_RE.findall(text):
@@ -100,11 +109,7 @@ def parse_label_metadata(text):
                     tags.append(part.lower())
     clean = kBRACKET_TAG_RE.sub("", text or "")
     clean = re.sub(r"\s+", " ", clean).strip()
-    return {
-        "raw_label": raw,
-        "clean_label": clean if clean else None,
-        "tags": tags,
-    }
+    return clean if clean else None, tags
 
 
 def _parse_length(text, warnings):

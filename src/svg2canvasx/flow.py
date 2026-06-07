@@ -3,6 +3,7 @@ from pathlib import Path
 import tkinter
 import tkinter.font
 
+from .svgparse import split_label_tags
 from .transforms import apply_matrix
 
 
@@ -187,8 +188,8 @@ def _resolve_extracted_layer(data, layer_index, layer_ref):
 
 def _convert_presentation_items(obj):
     kind = obj.get("kind")
-    label = _choose_label(obj)
-    tags = _base_item_tags(obj)
+    label, label_tags = _normalized_label_and_tags(obj)
+    tags = _base_item_tags(obj, extra_tags=label_tags)
     if kind == "rect":
         world = obj.get("world") or {}
         item = {
@@ -273,14 +274,15 @@ def _make_simple_text_item(obj):
     style = obj.get("style") or {}
     world = obj.get("world") or {}
     layout = obj.get("text_layout") or {}
+    label, label_tags = _normalized_label_and_tags(obj)
     item = {
         "kind": "text",
-        "label": _choose_label(obj),
+        "label": label,
         "text": obj.get("text", ""),
         "point": world.get("anchor_point"),
         "text_style": _flow_text_style(style, layout, world),
     }
-    _attach_tags(item, _base_item_tags(obj))
+    _attach_tags(item, _base_item_tags(obj, extra_tags=label_tags))
     return item
 
 
@@ -289,6 +291,7 @@ def _line_segments_to_flow_items(obj, line):
     base_x = float(base_point[0])
     base_y = float(base_point[1])
     anchor_name = ((obj.get("text_layout") or {}).get("suggested_tk_anchor")) or "sw"
+    label, label_tags = _normalized_label_and_tags(obj)
     widths = [_measure_text_width(_flow_text_style(segment.get("style") or {}, obj.get("text_layout") or {}, obj.get("world") or {}), segment.get("text", "")) for segment in line.get("segments", [])]
     total_width = sum(widths)
     left_x = _line_left_x(anchor_name, base_x, total_width)
@@ -302,12 +305,12 @@ def _line_segments_to_flow_items(obj, line):
             continue
         item = {
             "kind": "text",
-            "label": _choose_label(obj),
+            "label": label,
             "text": segment_text,
             "point": [_segment_anchor_x(anchor_name, cursor_x, width), base_y],
             "text_style": text_style,
         }
-        tags = _base_item_tags(obj)
+        tags = _base_item_tags(obj, extra_tags=label_tags)
         span_id = segment.get("span_svg_id")
         parent_span_id = segment.get("parent_span_svg_id")
         if span_id:
@@ -321,20 +324,24 @@ def _line_segments_to_flow_items(obj, line):
 
 
 def _convert_annotation_region(obj):
-    label = _choose_label(obj)
+    label, label_tags = _normalized_label_and_tags(obj)
     annotation = obj.get("annotation") or {}
     world = obj.get("world") or {}
     bbox = world.get("bbox")
     if not bbox:
         return None
     shape = "rect" if obj.get("kind") == "rect" else "bbox"
-    return {
+    region = {
         "label": label,
         "name": _annotation_name(label, annotation),
         "shape": shape,
         "bbox": bbox,
         "source": annotation.get("source"),
     }
+    tags = _base_item_tags(obj, extra_tags=label_tags)
+    if tags:
+        region["tags"] = tags
+    return region
 
 
 def _draw_style(obj, include_fill=False):
@@ -356,11 +363,21 @@ def _normalize_paint(value):
 
 
 def _choose_label(obj):
-    for key in ("inkscape_label", "label", "svg_id"):
+    label, _tags = _normalized_label_and_tags(obj)
+    return label
+
+
+def _normalized_label_and_tags(obj):
+    all_tags = list(obj.get("tags") or [])
+    for key in ("label", "inkscape_label", "svg_id"):
         value = obj.get(key)
         if value is not None and str(value).strip():
-            return value
-    return None
+            clean_label, tags = split_label_tags(str(value))
+            for tag in tags:
+                if tag not in all_tags:
+                    all_tags.append(tag)
+            return clean_label, all_tags
+    return None, all_tags
 
 
 def _attach_tags(item, tags):
@@ -372,12 +389,12 @@ def _attach_tags(item, tags):
         item["tags"] = unique_tags
 
 
-def _base_item_tags(obj):
+def _base_item_tags(obj, extra_tags=None):
     tags = []
     svg_id = obj.get("svg_id")
     if svg_id:
         tags.append("source:" + str(svg_id))
-    for tag in obj.get("tags") or []:
+    for tag in extra_tags or obj.get("tags") or []:
         if tag:
             tags.append(str(tag))
     for group in obj.get("groups") or []:
