@@ -14,16 +14,31 @@
     "purpose": "Describe the svg2canvasx flow JSON format and the package functions used to create, load, preview, and render flow documents onto Tkinter canvases and Toplevel windows.",
     "status": "draft",
     "created": "2026-06-02",
-    "updated": "2026-06-02"
+    "updated": "2026-06-07"
   },
   "overview": {
-    "description": "The flow format is a simplified JSON representation derived from the Stage 1 extracted SVG JSON. It is oriented around drawing-ready layers and items rather than raw SVG structure. The package provides helpers to convert extracted data into flow form, load flow files, draw flow items onto a Tkinter Canvas, create a Canvas already populated from a flow document, create a Tkinter Toplevel window containing such a Canvas, and generate raw Tkinter source code from a flow document.",
+    "description": "The flow format is a simplified JSON representation derived from the Stage 1 extracted SVG JSON. It is intentionally closer to the Tkinter Canvas/runtime model than to the original SVG/Inkscape authoring model. The package provides helpers to convert extracted data into flow form, load flow files, draw flow items onto a Tkinter Canvas, create a Canvas already populated from a flow document, create a Tkinter Toplevel window containing such a Canvas, and generate raw Tkinter source code from a flow document.",
     "core-ideas": [
       "Flow documents are a post-extraction representation, not a replacement for the extracted JSON.",
-      "Flow documents are intentionally simpler than SVG and are designed for package-internal drawing, previews, and code generation.",
+      "Flow documents are intentionally flatter than SVG and are designed for package-internal drawing, previews, and code generation.",
       "Presentation layers contain drawable `items`.",
       "Annotation layers contain `regions`.",
-      "The flow representation is easy to convert back into preview objects and easy to emit as raw Canvas calls."
+      "SVG group ancestry and other source context are preserved as tags or lightweight metadata on emitted items rather than as nested structures.",
+      "A single extracted SVG text object may become multiple flow text items when that better matches Canvas rendering."
+    ]
+  },
+  "flow-model-principles": {
+    "structural-grouping": [
+      "The only intended structural grouping in flow JSON is: `canvas`, `layers`, `items` within presentation layers, and `regions` within annotation layers.",
+      "SVG groups do not become flow groups.",
+      "Nested SVG text/tspan structure does not remain nested in flow by default.",
+      "Layer membership is the primary structural grouping that remains from authoring."
+    ],
+    "flattening-rules": [
+      "Objects inside SVG groups become individual flow items.",
+      "Useful SVG ancestry may be preserved as tags such as `group:panel-main`.",
+      "Inline styled text spans may become separate flow text items when needed for Canvas-oriented rendering.",
+      "Whitespace-only text segments should not become standalone flow text items, though they may still affect measured placement of later segments."
     ]
   },
   "package-functions": {
@@ -301,7 +316,21 @@
             "label": {
               "type": "string",
               "required": false,
-              "description": "Optional label or identifier."
+              "description": "Optional cleaned label or identifier."
+            },
+            "tags": {
+              "type": "array",
+              "required": false,
+              "description": "Optional flat tag list carrying source or authoring context without introducing nested SVG structure.",
+              "items": "string",
+              "examples": [
+                [
+                  "source:text7068",
+                  "span:tspan7078",
+                  "parent-span:tspan7074",
+                  "group:panel-main"
+                ]
+              ]
             },
             "bbox": {
               "type": "bbox4",
@@ -347,7 +376,7 @@
             "text": {
               "type": "string",
               "required": "used for text items",
-              "description": "Text content."
+              "description": "Text content. A single extracted SVG text object may contribute multiple flow text items."
             },
             "point": {
               "type": "point2",
@@ -396,13 +425,14 @@
       },
       "annotation-region": {
         "title": "Annotation Region",
-        "description": "A simple annotation region derived from annotation-layer objects.",
+        "description": "A simple annotation region derived from annotation-layer objects or presentation objects tagged as regions.",
         "structure": {
           "type": "object",
           "keys": {
             "label": {
               "type": "string",
-              "required": false
+              "required": false,
+              "description": "Cleaned label with bracket tags removed."
             },
             "name": {
               "type": "string",
@@ -419,6 +449,17 @@
             "bbox": {
               "type": "bbox4",
               "required": true
+            },
+            "source": {
+              "type": "string",
+              "required": false,
+              "description": "Where the annotation region came from, such as `annotation-layer` or `visual-item`."
+            },
+            "tags": {
+              "type": "array",
+              "required": false,
+              "description": "Optional flat tag list carrying source or authoring context for the region.",
+              "items": "string"
             }
           },
           "additional_keys": true
@@ -452,6 +493,10 @@
             {
               "kind": "rect",
               "label": "button.export_json",
+              "tags": [
+                "source:r1",
+                "group:panel-main"
+              ],
               "bbox": [
                 50,
                 50,
@@ -467,7 +512,11 @@
             },
             {
               "kind": "text",
-              "label": "text.export_json",
+              "label": "title.export_json",
+              "tags": [
+                "source:text1",
+                "span:tspan1"
+              ],
               "text": "Export JSON",
               "point": [
                 150,
@@ -484,6 +533,28 @@
               }
             }
           ]
+        },
+        {
+          "name": "Layer 3: semantic regions",
+          "role": "annotation",
+          "regions": [
+            {
+              "label": "command.1.entry",
+              "name": "command.1.entry",
+              "shape": "rect",
+              "bbox": [
+                50,
+                50,
+                250,
+                90
+              ],
+              "source": "visual-item",
+              "tags": [
+                "source:r1",
+                "region"
+              ]
+            }
+          ]
         }
       ]
     }
@@ -493,11 +564,12 @@
       "The flow format is currently defined by package behavior rather than a frozen standalone standard.",
       "The structure is intentionally soft: additional keys are acceptable unless a consuming tool requires a narrower subset.",
       "The package's Canvas/Toplevel helpers draw only presentation layers by default.",
-      "Annotation layers are still represented in flow JSON, even when a specific helper does not draw them."
+      "Annotation layers are still represented in flow JSON, even when a specific helper does not draw them.",
+      "Text layout flattening is intentionally oriented around Inkscape-authored SVG conventions rather than arbitrary generic SVG text behavior."
     ],
     "relationship-to-other-formats": [
       "Extracted JSON is richer and closer to SVG provenance.",
-      "Flow JSON is simpler and more drawing-oriented.",
+      "Flow JSON is simpler, flatter, and more drawing-oriented.",
       "Raw Tkinter source is generated from flow JSON, not directly from extracted JSON."
     ]
   }
