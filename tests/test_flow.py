@@ -187,6 +187,15 @@ class FlowTests(unittest.TestCase):
                     "style": {"font_family": "Arial", "font_size": 14.0, "font_weight": "bold", "font_style": "oblique", "fill": "#333333"},
                     "world": {"anchor_point": [5.0, 6.0], "angle_degrees": -30.0},
                     "text_layout": {"suggested_tk_anchor": "sw"},
+                    "spans": [
+                        {
+                            "text": "Hello",
+                            "style": {"font_family": "Arial", "font_size": 14.0, "font_weight": "bold", "font_style": "oblique", "fill": "#333333"},
+                            "local": {"x": 5.0, "y": 6.0},
+                            "svg_id": "t1",
+                            "parent_svg_id": None,
+                        }
+                    ],
                 }
             ],
             "annotations": [],
@@ -201,6 +210,129 @@ class FlowTests(unittest.TestCase):
         self.assertTrue(item["text_style"]["italic"])
         self.assertEqual(item["text_style"]["anchor"], "sw")
         self.assertEqual(item["text_style"]["angle"], -30.0)
+        self.assertEqual(item["tags"], ["source:t1", "span:t1"])
+
+    @mock.patch("svg2canvasx.flow._measure_text_width", side_effect=[40.0, 30.0, 20.0, 50.0])
+    def test_multiline_styled_text_flattens_to_multiple_flow_items(self, _measure_text_width):
+        extracted = {
+            "source": {"path": "example.svg"},
+            "svg": {},
+            "layers": [
+                {"uid": "layer2", "svg_id": "layer2", "label": "Presentation", "role": "presentation"},
+            ],
+            "objects": [
+                {
+                    "svg_id": "text7068",
+                    "kind": "text",
+                    "layer": "layer2",
+                    "label": "note.body",
+                    "style": {"font_family": "Arial", "font_size": 12.0, "font_weight": "400", "font_style": "normal", "fill": "#111111"},
+                    "groups": [{"id": "panel-main", "label": "panel-main"}],
+                    "world": {"anchor_point": [650.0, 154.0], "angle_degrees": 0.0, "matrix": [1, 0, 0, 1, 0, 0]},
+                    "text_layout": {"suggested_tk_anchor": "sw"},
+                    "spans": [
+                        {
+                            "text": "and I'm not sure ",
+                            "style": {"font_family": "Arial", "font_size": 12.0, "font_style": "normal", "fill": "#111111"},
+                            "local": {"x": 650.0, "y": 154.0},
+                            "svg_id": "tspan7074",
+                            "parent_svg_id": None,
+                        },
+                        {
+                            "text": "how this is",
+                            "style": {"font_family": "Arial", "font_size": 12.0, "font_style": "italic", "fill": "#111111"},
+                            "local": {"x": None, "y": None},
+                            "svg_id": "tspan7078",
+                            "parent_svg_id": "tspan7074",
+                        },
+                        {
+                            "text": "handled",
+                            "style": {"font_family": "Arial", "font_size": 12.0, "font_style": "italic", "fill": "#111111"},
+                            "local": {"x": 650.0, "y": 162.0},
+                            "svg_id": "tspan7080",
+                            "parent_svg_id": "tspan7076",
+                        },
+                        {
+                            "text": " in Inkscape.",
+                            "style": {"font_family": "Arial", "font_size": 12.0, "font_style": "normal", "fill": "#111111"},
+                            "local": {"x": None, "y": None},
+                            "svg_id": "tspan7076",
+                            "parent_svg_id": None,
+                        },
+                    ],
+                }
+            ],
+            "annotations": [],
+        }
+        items = convert_extracted_data_to_flow(extracted)["layers"][0]["items"]
+        self.assertEqual(len(items), 4)
+        self.assertEqual([item["text"] for item in items], [
+            "and I'm not sure ",
+            "how this is",
+            "handled",
+            " in Inkscape.",
+        ])
+        self.assertEqual(items[0]["point"], [650.0, 154.0])
+        self.assertEqual(items[1]["point"], [690.0, 154.0])
+        self.assertEqual(items[2]["point"], [650.0, 162.0])
+        self.assertEqual(items[3]["point"], [670.0, 162.0])
+        self.assertFalse(items[0]["text_style"]["italic"])
+        self.assertTrue(items[1]["text_style"]["italic"])
+        self.assertTrue(items[2]["text_style"]["italic"])
+        self.assertFalse(items[3]["text_style"]["italic"])
+        self.assertIn("source:text7068", items[0]["tags"])
+        self.assertIn("span:tspan7078", items[1]["tags"])
+        self.assertIn("parent-span:tspan7074", items[1]["tags"])
+        self.assertIn("group:panel-main", items[0]["tags"])
+
+    @mock.patch("svg2canvasx.flow._measure_text_width", side_effect=[40.0, 8.0, 30.0])
+    def test_whitespace_only_text_segments_are_dropped_but_still_advance_layout(self, _measure_text_width):
+        extracted = {
+            "source": {"path": "example.svg"},
+            "svg": {},
+            "layers": [
+                {"uid": "layer2", "svg_id": "layer2", "label": "Presentation", "role": "presentation"},
+            ],
+            "objects": [
+                {
+                    "svg_id": "text100",
+                    "kind": "text",
+                    "layer": "layer2",
+                    "label": "note.inline",
+                    "style": {"font_family": "Arial", "font_size": 12.0, "fill": "#111111"},
+                    "world": {"anchor_point": [100.0, 50.0], "angle_degrees": 0.0, "matrix": [1, 0, 0, 1, 0, 0]},
+                    "text_layout": {"suggested_tk_anchor": "sw"},
+                    "spans": [
+                        {
+                            "text": "hello",
+                            "style": {"font_family": "Arial", "font_size": 12.0, "fill": "#111111"},
+                            "local": {"x": 100.0, "y": 50.0},
+                            "svg_id": "tspan1",
+                            "parent_svg_id": None,
+                        },
+                        {
+                            "text": " ",
+                            "style": {"font_family": "Arial", "font_size": 12.0, "fill": "#111111"},
+                            "local": {"x": None, "y": None},
+                            "svg_id": "tspan_space",
+                            "parent_svg_id": "tspan1",
+                        },
+                        {
+                            "text": "world",
+                            "style": {"font_family": "Arial", "font_size": 12.0, "fill": "#111111"},
+                            "local": {"x": None, "y": None},
+                            "svg_id": "tspan2",
+                            "parent_svg_id": "tspan1",
+                        },
+                    ],
+                }
+            ],
+            "annotations": [],
+        }
+        items = convert_extracted_data_to_flow(extracted)["layers"][0]["items"]
+        self.assertEqual([item["text"] for item in items], ["hello", "world"])
+        self.assertEqual(items[0]["point"], [100.0, 50.0])
+        self.assertEqual(items[1]["point"], [148.0, 50.0])
 
     def test_annotation_rect_becomes_compact_region(self):
         extracted = {

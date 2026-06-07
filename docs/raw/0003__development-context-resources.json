@@ -1,0 +1,81 @@
+{
+  "document": {
+    "document-id": "svg2canvasx.development-context-resources.raw.v1",
+    "title": "svg2canvasx Development Context Resources",
+    "tags": [
+      "svg2canvasx",
+      "development-context",
+      "resources",
+      "references",
+      "librarian",
+      "llm"
+    ],
+    "purpose": "Name essential reference documents used in designing and documenting svg2canvasx, and explain how those references should be resolved through the librarian for system-independent access.",
+    "status": "draft",
+    "created": "2026-06-06",
+    "updated": "2026-06-06"
+  },
+  "overview": {
+    "description": "This document is a logical resource index for important design-context materials used while developing svg2canvasx. It is intended for humans and LLMs that need to understand which external reference documents influenced coding conventions, raw documentation structure, and soft-spec documentation style.",
+    "core-ideas": [
+      "The entries here use logical names plus bare filenames, not machine-specific full paths.",
+      "The referenced resources may live outside this repository.",
+      "The preferred way to locate those resources is through the librarian file rather than hard-coded filesystem assumptions."
+    ]
+  },
+  "resource-resolution": {
+    "description": "References in this document should be dereferenced through the librarian so they can be located in a system-independent way.",
+    "how-to-locate-the-librarian": {
+      "command": "machine-root get librarian",
+      "meaning": "Ask the local machine-root resolver for the librarian file location."
+    },
+    "llm-guidance": [
+      "When an LLM needs background information for this project, it should first resolve the librarian using `machine-root get librarian`.",
+      "After locating the librarian, it should use that index to find the referenced documents by filename or logical name.",
+      "This avoids depending on one workstation's absolute paths and keeps project context portable across systems."
+    ]
+  },
+  "resources": [
+    {
+      "logical-name": "lionsphilosophyofprogramming.2025.simplified",
+      "filename": "v2026-01-14_part2_lions-philosophy-of-programming_simplified.json",
+      "used-for": "Primary coding-conventions reference for Python implementation work in this project.",
+      "notes": "This was the explicit code-style and coding-practice reference given for svg2canvasx implementation tasks."
+    },
+    {
+      "logical-name": "lions-docs.description.json-document-format-for-llms.minimal.v1",
+      "filename": "0002__lions-docs-description_json-document-for-llms_simplified_v1.json",
+      "used-for": "General structure and framing for raw JSON documentation files in docs/raw/.",
+      "notes": "Use this when authoring or revising repository raw-document JSON so the documents stay consistent in shape and intent."
+    },
+    {
+      "logical-name": "softspec.spec.v2",
+      "filename": "02__second-pass.txt",
+      "used-for": "Soft-spec style guidance for describing JSON formats, especially the flow JSON format.",
+      "notes": "This informed how format descriptions were written when the project needed schema-like documentation without pretending to be a frozen strict standard."
+    },
+    {
+      "title": "Inkscape for Schematic Design",
+      "url": "https://chatgpt.com/c/6a1f3153-21c4-83e8-a938-5a36ece3c0df",
+      "used-for": "Lion's first primary conversation with Wing-Cat (Chat-GPT), working on svg2canvasx.",
+      "notes": "Not accessible without Lion's Chat-GPT credentials."
+    },
+    {
+      "title": "Visual-First Programming Ideas",
+      "url": "https://chatgpt.com/c/6a1f2d61-2ecc-83e8-bd6e-4736bac6b28a",
+      "used-for": "Precursor conversation noted in project provenance.",
+      "notes": "Not accessible without Lion's Chat-GPT credentials."
+    }
+  ],
+  "usage-notes": {
+    "for-humans": [
+      "Use this file as a reminder of which external references shaped the project.",
+      "Prefer the librarian to locate the actual source documents when possible."
+    ],
+    "for-llms": [
+      "Treat the logical names in this file as stable handles for project-context resources.",
+      "Do not assume the files live at the same absolute path on every machine.",
+      "Resolve the librarian first, then use it to find the referenced filenames or nearby related materials."
+    ]
+  }
+}

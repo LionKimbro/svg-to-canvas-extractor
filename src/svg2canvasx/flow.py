@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 import tkinter
+import tkinter.font
+
+from .transforms import apply_matrix
 
 
 def convert_extracted_file_to_flow(path):
@@ -32,9 +35,10 @@ def convert_extracted_data_to_flow(data):
         if key not in layers_by_key:
             layers_by_key[key] = _make_flow_layer(layer, "presentation")
             ordered_keys.append(key)
-        item = _convert_presentation_item(obj)
-        if item is not None:
-            layers_by_key[key]["items"].append(item)
+        items = _convert_presentation_items(obj)
+        for item in items:
+            if item is not None:
+                layers_by_key[key]["items"].append(item)
 
     for obj in data.get("annotations", []):
         layer = _resolve_extracted_layer(data, layer_index, obj.get("layer"))
@@ -181,9 +185,10 @@ def _resolve_extracted_layer(data, layer_index, layer_ref):
     return {}
 
 
-def _convert_presentation_item(obj):
+def _convert_presentation_items(obj):
     kind = obj.get("kind")
     label = _choose_label(obj)
+    tags = _base_item_tags(obj)
     if kind == "rect":
         world = obj.get("world") or {}
         item = {
@@ -194,7 +199,8 @@ def _convert_presentation_item(obj):
         }
         if world.get("points") and not _is_axis_aligned_rect_points(world.get("points")):
             item["points"] = world.get("points")
-        return item
+        _attach_tags(item, tags)
+        return [item]
     if kind in ("line", "path", "polyline", "polygon"):
         world = obj.get("world") or {}
         item = {
@@ -207,35 +213,111 @@ def _convert_presentation_item(obj):
             item["closed"] = True
         elif obj.get("closed"):
             item["closed"] = bool(obj.get("closed"))
-        return item
+        _attach_tags(item, tags)
+        return [item]
     if kind in ("circle", "ellipse"):
         world = obj.get("world") or {}
-        return {
+        item = {
             "kind": kind,
             "label": label,
             "bbox": world.get("bbox"),
             "draw": _draw_style(obj, include_fill=True),
         }
+        _attach_tags(item, tags)
+        return [item]
     if kind == "text":
-        style = obj.get("style") or {}
-        world = obj.get("world") or {}
-        layout = obj.get("text_layout") or {}
-        return {
+        return _convert_text_items(obj)
+    return []
+
+
+def _convert_text_items(obj):
+    spans = obj.get("spans") or []
+    if not spans:
+        item = _make_simple_text_item(obj)
+        return [item] if item is not None else []
+
+    lines = []
+    current_line = None
+    for span in spans:
+        text = span.get("text")
+        if text in (None, ""):
+            continue
+        span_point = _span_world_point(obj, span)
+        if current_line is None or span_point is not None:
+            if current_line is not None and current_line.get("segments"):
+                lines.append(current_line)
+            current_line = {
+                "base_point": span_point or ((obj.get("world") or {}).get("anchor_point")) or [0.0, 0.0],
+                "segments": [],
+            }
+        current_line["segments"].append({
+            "text": text,
+            "style": _merged_text_style(obj, span),
+            "span_svg_id": span.get("svg_id"),
+            "parent_span_svg_id": span.get("parent_svg_id"),
+        })
+    if current_line is not None and current_line.get("segments"):
+        lines.append(current_line)
+
+    if not lines:
+        item = _make_simple_text_item(obj)
+        return [item] if item is not None else []
+
+    output = []
+    for line in lines:
+        output.extend(_line_segments_to_flow_items(obj, line))
+    return output
+
+
+def _make_simple_text_item(obj):
+    style = obj.get("style") or {}
+    world = obj.get("world") or {}
+    layout = obj.get("text_layout") or {}
+    item = {
+        "kind": "text",
+        "label": _choose_label(obj),
+        "text": obj.get("text", ""),
+        "point": world.get("anchor_point"),
+        "text_style": _flow_text_style(style, layout, world),
+    }
+    _attach_tags(item, _base_item_tags(obj))
+    return item
+
+
+def _line_segments_to_flow_items(obj, line):
+    base_point = line.get("base_point") or [0.0, 0.0]
+    base_x = float(base_point[0])
+    base_y = float(base_point[1])
+    anchor_name = ((obj.get("text_layout") or {}).get("suggested_tk_anchor")) or "sw"
+    widths = [_measure_text_width(_flow_text_style(segment.get("style") or {}, obj.get("text_layout") or {}, obj.get("world") or {}), segment.get("text", "")) for segment in line.get("segments", [])]
+    total_width = sum(widths)
+    left_x = _line_left_x(anchor_name, base_x, total_width)
+    cursor_x = left_x
+    output = []
+    for segment, width in zip(line.get("segments", []), widths):
+        text_style = _flow_text_style(segment.get("style") or {}, obj.get("text_layout") or {}, obj.get("world") or {})
+        segment_text = segment.get("text", "")
+        if not str(segment_text).strip():
+            cursor_x += width
+            continue
+        item = {
             "kind": "text",
-            "label": label,
-            "text": obj.get("text", ""),
-            "point": world.get("anchor_point"),
-            "text_style": {
-                "font_family": style.get("font_family"),
-                "font_size": style.get("font_size"),
-                "bold": _is_bold_style(style.get("font_weight")),
-                "italic": _is_italic_style(style.get("font_style")),
-                "anchor": layout.get("suggested_tk_anchor"),
-                "angle": world.get("angle_degrees"),
-                "fill": _normalize_paint(style.get("fill")) or _normalize_paint(style.get("stroke")),
-            },
+            "label": _choose_label(obj),
+            "text": segment_text,
+            "point": [_segment_anchor_x(anchor_name, cursor_x, width), base_y],
+            "text_style": text_style,
         }
-    return None
+        tags = _base_item_tags(obj)
+        span_id = segment.get("span_svg_id")
+        parent_span_id = segment.get("parent_span_svg_id")
+        if span_id:
+            tags.append("span:" + str(span_id))
+        if parent_span_id:
+            tags.append("parent-span:" + str(parent_span_id))
+        _attach_tags(item, tags)
+        output.append(item)
+        cursor_x += width
+    return output
 
 
 def _convert_annotation_region(obj):
@@ -279,6 +361,99 @@ def _choose_label(obj):
         if value is not None and str(value).strip():
             return value
     return None
+
+
+def _attach_tags(item, tags):
+    unique_tags = []
+    for tag in tags or []:
+        if tag and tag not in unique_tags:
+            unique_tags.append(tag)
+    if unique_tags:
+        item["tags"] = unique_tags
+
+
+def _base_item_tags(obj):
+    tags = []
+    svg_id = obj.get("svg_id")
+    if svg_id:
+        tags.append("source:" + str(svg_id))
+    for tag in obj.get("tags") or []:
+        if tag:
+            tags.append(str(tag))
+    for group in obj.get("groups") or []:
+        group_id = (group or {}).get("id")
+        if group_id:
+            tags.append("group:" + str(group_id))
+    return tags
+
+
+def _span_world_point(obj, span):
+    local = span.get("local") or {}
+    x_value = local.get("x")
+    y_value = local.get("y")
+    if x_value is None or y_value is None:
+        return None
+    world = obj.get("world") or {}
+    matrix = world.get("matrix")
+    if matrix and len(matrix) == 6:
+        return apply_matrix(matrix, [x_value, y_value])
+    return [x_value, y_value]
+
+
+def _merged_text_style(obj, span):
+    output = dict(obj.get("style") or {})
+    output.update(span.get("style") or {})
+    return output
+
+
+def _flow_text_style(style, layout, world):
+    return {
+        "font_family": style.get("font_family"),
+        "font_size": style.get("font_size"),
+        "bold": _is_bold_style(style.get("font_weight")),
+        "italic": _is_italic_style(style.get("font_style")),
+        "anchor": (layout or {}).get("suggested_tk_anchor"),
+        "angle": (world or {}).get("angle_degrees"),
+        "fill": _normalize_paint(style.get("fill")) or _normalize_paint(style.get("stroke")),
+    }
+
+
+def _line_left_x(anchor_name, base_x, total_width):
+    if anchor_name == "s":
+        return base_x - (float(total_width) / 2.0)
+    if anchor_name == "se":
+        return base_x - float(total_width)
+    return base_x
+
+
+def _segment_anchor_x(anchor_name, left_x, width):
+    if anchor_name == "s":
+        return left_x + (float(width) / 2.0)
+    if anchor_name == "se":
+        return left_x + float(width)
+    return left_x
+
+
+def _measure_text_width(text_style, text):
+    if not text:
+        return 0.0
+    try:
+        root = _measure_font_root()
+        font_obj = tkinter.font.Font(root=root, font=_tk_font_spec(text_style))
+        return float(font_obj.measure(text))
+    except Exception:
+        size = float(text_style.get("font_size") or 12.0) * 0.75
+        return float(len(text)) * size * 0.6
+
+
+def _measure_font_root():
+    root = getattr(_measure_font_root, "_root", None)
+    if root is not None:
+        return root
+    root = tkinter.Tk()
+    root.withdraw()
+    _measure_font_root._root = root
+    return root
 
 
 def _annotation_name(label, annotation):

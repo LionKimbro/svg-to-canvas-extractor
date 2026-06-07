@@ -331,7 +331,6 @@ def _group_info(node):
     return {
         "id": get_node_id(node),
         "label": get_inkscape_label(node),
-        "is_region": bool((get_node_id(node) or "").startswith("region_")),
     }
 
 
@@ -357,8 +356,9 @@ def _base_object(node, kind, layer_info, groups, style, world_matrix, state):
     return output
 
 
-def _collect_text_spans(node, base_style, spans, warnings):
+def _collect_text_spans(node, base_style, spans, warnings, parent_span_id=None):
     text_parts = []
+    node_id = get_node_id(node)
     if node.text:
         text_parts.append(node.text)
         spans.append(
@@ -369,6 +369,8 @@ def _collect_text_spans(node, base_style, spans, warnings):
                     "x": parse_number(node.get("x")),
                     "y": parse_number(node.get("y")),
                 },
+                "svg_id": node_id,
+                "parent_svg_id": parent_span_id,
             }
         )
     for child in list(node):
@@ -377,7 +379,7 @@ def _collect_text_spans(node, base_style, spans, warnings):
             warnings.append("complex text layout")
             continue
         child_style = build_style(child, base_style, warnings)
-        child_text = _collect_text_spans(child, child_style, spans, warnings)
+        child_text = _collect_text_spans(child, child_style, spans, warnings, parent_span_id=node_id if local_name(node.tag) == "tspan" else None)
         text_parts.append(child_text)
         if child.tail:
             text_parts.append(child.tail)
@@ -389,6 +391,8 @@ def _collect_text_spans(node, base_style, spans, warnings):
                         "x": None,
                         "y": None,
                     },
+                    "svg_id": node_id,
+                    "parent_svg_id": parent_span_id,
                 }
             )
     return "".join(text_parts)
@@ -439,7 +443,6 @@ def _copy_group(group_info):
     return {
         "id": group_info.get("id"),
         "label": group_info.get("label"),
-        "is_region": group_info.get("is_region", False),
     }
 
 

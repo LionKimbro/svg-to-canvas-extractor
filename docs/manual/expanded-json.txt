@@ -1,0 +1,492 @@
+title: Expanded JSON data format notes
+date: 2026-06-05
+
+
+== Overview ==
+
+  The Expanded JSON file is the direct output of svg2canvasx extract.
+
+  It is meant to preserve enough of the original SVG structure, geometry,
+  text, layer identity, and annotation information that later stages can:
+
+    * preview the drawing
+    * inspect presentation objects
+    * inspect semantic annotations
+    * convert the data into flow JSON
+    * perform later semantic interpretation
+
+  The top-level keys are normally:
+
+    source
+    svg
+    layers
+    objects
+    annotations
+    warnings
+
+
+== source ==
+
+  source.path
+    The filesystem path of the SVG that was extracted.
+
+  source.generator
+    The tool name, currently: "svg2canvasx"
+
+  source.stage
+    The extraction stage number, currently: 1
+
+
+== svg ==
+
+  svg.width
+    Parsed SVG width as a number, if available.
+
+  svg.height
+    Parsed SVG height as a number, if available.
+
+  svg.viewBox
+    Parsed viewBox as a 4-number list if available, otherwise null.
+
+
+== layers ==
+
+  layers is a list of layer records, in SVG/layer order.
+
+  Each layer record describes one Inkscape layer that the extractor
+  recognized and considered relevant to the pipeline.
+
+  Layer keys:
+
+    uid
+      The canonical identifier used by extracted objects and annotations to
+      refer to the layer.  If the layer has an SVG id, uid will usually be
+      that same value.  If not, a fallback uid may be generated.
+
+    svg_id
+      The raw SVG id for the layer if it exists, otherwise null.
+
+    label
+      The cleaned layer label, with bracket tags removed.
+
+    role
+      The normalized role for the layer.
+
+      Current expected values are:
+
+        comment
+        presentation
+        annotation
+
+    tags
+      The bracket tags extracted from the raw Inkscape layer label.
+
+      Examples:
+
+        [comment]
+        [presentation]
+        [annotation]
+
+    inkscape_label
+      The literal Inkscape layer label as authored, including bracket tags.
+
+  Example layer record:
+
+    {
+      "uid": "layer2",
+      "svg_id": "layer2",
+      "label": "Layer 2",
+      "role": "presentation",
+      "tags": ["presentation"],
+      "inkscape_label": "[presentation] Layer 2"
+    }
+
+
+== objects ==
+
+  objects is a list of presentation-layer drawable items.
+
+  These are the things that a dumb preview renderer would normally draw:
+
+    * rect
+    * line
+    * polyline
+    * polygon
+    * path
+    * text
+    * circle
+    * ellipse
+
+  Objects come only from presentation layers.  Annotation layers do not place
+  their items here.
+
+
+== Object Keys ==
+
+  uid
+    The canonical object identifier.
+
+    Usually this is the SVG element id if one exists.  If the SVG element had
+    no id, uid is an auto-generated fallback such as auto_00001.
+
+  svg_id
+    The raw SVG element id if it exists, otherwise null.
+
+  kind
+    The normalized object kind.
+
+    Common values include:
+
+      rect
+      line
+      polyline
+      polygon
+      path
+      text
+      circle
+      ellipse
+
+  layer
+    The uid of the layer the object belongs to.
+
+    This is a reference into the layers list.
+
+  groups
+    A list of parent group records carried down from nested svg:g elements.
+
+    Group entries may contain:
+
+      id
+      label
+
+  style
+    The normalized style dictionary.
+
+    It may include keys such as:
+
+      fill
+      stroke
+      stroke_width
+      stroke_dasharray
+      stroke_dasharray_values
+      stroke_linecap
+      stroke_linejoin
+      opacity
+      fill_opacity
+      stroke_opacity
+      font_family
+      font_size
+      font_weight
+      font_style
+      text_anchor
+      dominant_baseline
+      alignment_baseline
+      _inkscape_font_specification
+      display
+      visibility
+
+  raw_style
+    The original style attribute string from the SVG element, if present.
+
+  tags
+    Bracket tags extracted from the raw object label.
+
+    The main currently meaningful object tag is:
+
+      region
+
+  label
+    The cleaned label, after bracket tags are stripped.
+
+  inkscape_label
+    The literal Inkscape label assigned by the user, including bracket tags.
+
+
+== local ==
+
+  local describes the object's geometry in its own local SVG coordinates,
+  before inherited transforms are applied.
+
+  The exact keys depend on object kind.
+
+  rect local keys:
+
+    x
+    y
+    width
+    height
+    rx  -- corner rounding radius x
+    ry  -- corner rounding radius y
+    bbox
+
+  line local keys:
+
+    x1
+    y1
+    x2
+    y2
+
+  polyline / polygon local keys:
+
+    points
+    bbox
+
+  path local keys:
+
+    d
+    path_was_flattened
+    curve_segments
+    points           (if available)
+    bbox             (if available)
+
+  text local keys:
+
+    x
+    y
+
+  circle local keys:
+
+    cx
+    cy
+    r
+    bbox
+
+  ellipse local keys:
+
+    cx
+    cy
+    rx
+    ry
+    bbox
+
+  Note on text redundancy:
+
+    In SVG, a text element can contain one or more tspan children.
+    So you can have one overall text object, and several internal spans,
+    each with their own style or position.
+    
+    text.local is the object-level position for the text element as a whole.
+    spans[].local is span-level detail for individual tspan pieces.  They are
+    often the same in simple text, but not conceptually the same.
+
+
+== spans ==
+
+  spans appears on text objects.
+
+  It is a list of span fragments assembled from the text node and any child
+  tspan nodes.
+
+  Each span may include:
+
+    text
+      The span's literal text.
+
+    style
+      The span's effective style after inheritance and overrides.
+
+    local
+      Per-span x/y if the span carries its own positioning, otherwise nulls.
+
+  Example span:
+
+    {
+      "text": "X",
+      "style": {"font_weight": "bold"},
+      "local": {"x": null, "y": null}
+    }
+
+
+== world ==
+
+  world describes the object after inherited transforms have been applied.
+
+  This is the geometry later stages usually want for preview and semantic
+  reasoning, because it is already in the final drawing coordinate space.
+
+  Common world keys:
+
+    matrix
+      The affine transform matrix used for the object.
+
+    bbox
+      The world-space bounding box.
+
+    points
+      World-space points, if the object can be represented that way.
+
+  text world keys:
+
+    matrix
+    anchor_point
+    angle_degrees
+
+  Text world key details:
+
+    matrix
+      The final inherited affine transform for the text object.
+
+      This is the same kind of six-value SVG matrix used elsewhere:
+
+        [a, b, c, d, e, f]
+
+      It is the transform that takes the text's local coordinates into final
+      drawing/world coordinates.
+
+    anchor_point
+      The world-space point corresponding to the text object's local x/y.
+
+      For most text extracted by svg2canvasx, local x/y should be understood
+      as the SVG text placement point before inherited transforms are applied.
+      In ordinary horizontal SVG text, that point is baseline-oriented rather
+      than a top-left corner.
+
+      So anchor_point is not "the text bbox corner".  It is the transformed
+      placement point that later stages can use to render or reason about the
+      text in final drawing coordinates.
+
+    angle_degrees
+      A practical extracted rotation angle for the text object in world space.
+
+      When the inherited transform behaves like a simple rotation, this value
+      records the detected rotation angle in degrees.  A value of 0.0 means
+      the text is effectively unrotated.  This is mainly for preview and
+      later interpretation; it is not a full replacement for the matrix.
+
+  Note on text world values:
+
+    For text, world does not usually contain world.points or a text bbox.
+    Text layout is more complex than simple shape geometry, and exact text
+    metrics depend on the rendering system and font.  The extractor therefore
+    preserves the transformed placement point, the inferred rotation, and the
+    effective text style instead of pretending it knows a perfect rendered
+    text outline.
+
+  ellipse / circle world keys may also include:
+
+    center
+
+  Note on apparent repetition:
+
+    world often looks repetitive because many objects are unrotated and keep an
+    identity matrix.  It is still intentionally repeated per object so later
+    code does not have to replay SVG tree transforms to know where the object
+    ended up.
+
+
+== text_layout ==
+
+  text_layout appears on text objects.
+
+  It captures text-placement details that are helpful for preview and later
+  interpretation.
+
+  Keys may include:
+
+    svg_text_anchor
+    svg_dominant_baseline
+    svg_alignment_baseline
+    suggested_tk_anchor
+
+  suggested_tk_anchor is a practical Tkinter preview hint, not a perfect text
+  metrics solution.
+
+
+== annotations ==
+
+  annotations is a list of extracted semantic annotation objects.
+
+  These come from two sources:
+
+    1. objects on annotation layers
+    2. presentation-layer objects tagged with [region]
+
+  Annotation entries often look much like normal objects because they still
+  preserve geometry, style, ids, labels, and world information.  The added
+  semantic meaning lives in the annotation sub-dictionary.
+
+  Annotation keys:
+
+    uid
+    svg_id
+    kind
+    layer
+    groups            (when applicable)
+    style             (when applicable)
+    raw_style         (when applicable)
+    tags
+    label
+    inkscape_label
+    local             (for annotation-layer geometry objects)
+    world
+    annotation
+
+  annotation sub-keys:
+
+    kind
+      Usually "region" or "unknown"
+
+    name
+      The normalized semantic name if one could be derived
+
+    raw_label
+      The semantic source label used to derive the annotation name
+
+    source
+      Where the annotation came from
+
+      Common values:
+
+        annotation-layer
+        visual-item
+
+  Example annotation from a presentation-layer [region] object:
+
+    {
+      "uid": "r1__region",
+      "svg_id": "r1",
+      "kind": "rect",
+      "layer": "layer2",
+      "label": "command.1.entry",
+      "annotation": {
+        "kind": "region",
+        "name": "command.1.entry",
+        "raw_label": "command.1.entry",
+        "source": "visual-item"
+      },
+      "world": { ... }
+    }
+
+  Example annotation from an annotation layer:
+
+    {
+      "uid": "a1",
+      "svg_id": "a1",
+      "kind": "rect",
+      "layer": "layer3",
+      "label": "region.buttons",
+      "annotation": {
+        "kind": "region",
+        "name": "buttons",
+        "raw_label": "region.buttons",
+        "source": "annotation-layer"
+      },
+      "local": { ... },
+      "world": { ... }
+    }
+
+
+== warnings ==
+
+  warnings is a list of non-fatal extraction warnings.
+
+  Examples include:
+
+    unsupported element kind
+    unsupported path arc command
+    complex text layout
+    missing numeric coordinate
+    percentage or unit not yet supported
+
+  The extractor tries to preserve partial useful output rather than crashing on
+  every unsupported feature, but layout-tag problems are treated more strictly.
